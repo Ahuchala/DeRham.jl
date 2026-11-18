@@ -39,7 +39,7 @@ Build the uncertified precision tuple from explicit relative, series, and
 algorithm precision inputs.
 """
 function _explicit_precision_information(
-    P::CohomologyPresentation,
+    P::CohomologyQuotient,
     polygon,
     weight,
     p;

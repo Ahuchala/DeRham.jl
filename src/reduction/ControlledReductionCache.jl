@@ -1,4 +1,4 @@
-_reduction_g_degree(P::CohomologyPresentation) =
+_reduction_g_degree(P::CohomologyQuotient) =
     numerator_degree(P, terminal_pole_order(P)) + 1
 
 """

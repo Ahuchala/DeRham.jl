@@ -78,7 +78,7 @@ function monomial_basis_in_degree(f, l, params, cache)
     return map((i) -> row_monomials[i], non_pivot_rows)
 end
 
-function compute_monomial_basis(f, P::CohomologyPresentation, m, params, cache)
+function compute_monomial_basis(f, P::CohomologyQuotient, m, params, cache)
     monomial_basis_in_degree(f, numerator_degree(P, m), params, cache)
 end
 
@@ -91,7 +91,7 @@ function compute_monomial_bases(f, params, cache)
     compute_monomial_bases(f, P, params, cache)
 end
 
-function compute_monomial_bases(f, P::CohomologyPresentation, params, cache)
+function compute_monomial_bases(f, P::CohomologyQuotient, params, cache)
     res = []
 
     for m in pole_orders(P)
@@ -115,7 +115,7 @@ function get_basis_of_cohomology_twoflavors(f, S, params, cache)
     get_basis_of_cohomology_twoflavors(f, P, S, params, cache)
 end
 
-function get_basis_of_cohomology_twoflavors(f, P::CohomologyPresentation, S, params, cache)
+function get_basis_of_cohomology_twoflavors(f, P::CohomologyQuotient, S, params, cache)
     basis = compute_monomial_bases(f, P, params, cache) # basis of cohomology
 
     if basis == nothing
@@ -138,6 +138,6 @@ function get_basis_of_cohomology(f, S, params, cache)
     get_basis_of_cohomology_twoflavors(f, S, params, cache)[2]
 end
 
-function get_basis_of_cohomology(f, P::CohomologyPresentation, S, params, cache)
+function get_basis_of_cohomology(f, P::CohomologyQuotient, S, params, cache)
     get_basis_of_cohomology_twoflavors(f, P, S, params, cache)[2]
 end

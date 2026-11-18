@@ -1,7 +1,7 @@
 @testset "cohomology presentations" begin
     for (n, d) in ((1, 3), (1, 4), (2, 4), (3, 3))
         presentation = DeRham.HypersurfacePresentation(n, d)
-        @test presentation isa DeRham.CohomologyPresentation
+        @test presentation isa DeRham.CohomologyQuotient
         @test DeRham.pole_orders(presentation) == 1:n
         @test DeRham.terminal_pole_order(presentation) == n
         @test DeRham.numerator_degree(presentation, n) == d * n - (n + 1)
@@ -20,7 +20,7 @@
         d = 2 * genus + 2
         f = x^d + y^d
         P = DeRham.DoubleCoverPresentation(1, d)
-        @test P isa DeRham.CohomologyPresentation
+        @test P isa DeRham.CohomologyQuotient
         @test DeRham.pole_orders(P) == 1:2
         @test DeRham.terminal_pole_order(P) == 2
         for m in DeRham.pole_orders(P)

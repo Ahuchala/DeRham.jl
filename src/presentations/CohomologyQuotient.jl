@@ -1,16 +1,16 @@
 """
-    abstract type CohomologyPresentation
+    abstract type CohomologyQuotient
 
-A Griffiths–Dwork presentation of cohomology indexed by pole order.
+A Griffiths–Dwork quotient model of cohomology indexed by pole order.
 """
-abstract type CohomologyPresentation end
+abstract type CohomologyQuotient end
 
 """
     HypersurfacePresentation(n, d)
 
 The cohomology presentation for a degree-`d` hypersurface of dimension `n`.
 """
-struct HypersurfacePresentation <: CohomologyPresentation
+struct HypersurfacePresentation <: CohomologyQuotient
     n::Int
     d::Int
 end
@@ -56,7 +56,7 @@ reduction_scalar(::HypersurfacePresentation, m::Integer) = QQ(1, m)
 The cohomology presentation for the double cover of `P^n` branched along a
 degree-`d` hypersurface, with `d` even.
 """
-struct DoubleCoverPresentation <: CohomologyPresentation
+struct DoubleCoverPresentation <: CohomologyQuotient
     n::Int
     d::Int
 
