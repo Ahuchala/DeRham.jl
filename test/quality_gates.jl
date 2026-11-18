@@ -34,6 +34,8 @@ end
     expected_public = Set([
         :fermat_hypersurface,
         :random_hypersurface,
+        :DoubleCover,
+        :get_basis_of_cohomology,
         :check_smoothness,
         :SlopesPolygon,
         :tate_twist,
