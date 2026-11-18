@@ -1,7 +1,8 @@
 # Double covers (experimental)
 
-This page describes experimental and provisional functionality. The frontend
-`DeRham.DoubleCover` and its methods are not exported or declared public.
+This page describes experimental functionality without a proof of correctness.
+`DeRham.DoubleCover` and `DeRham.get_basis_of_cohomology` are public but not
+exported.
 
 Given a smooth double cover of projective space branched along a homogeneous
 polynomial $F$ of even degree over a finite field of odd characteristic,

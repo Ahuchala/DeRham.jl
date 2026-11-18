@@ -26,7 +26,6 @@ makedocs(
     pages = [
         "Home" => "index.md",
         "Getting started" => "getting_started.md",
-        "Double covers (experimental)" => "double_covers.md",
         "Invariants" => [
             "Zeta function" => "invariants/zeta.md",
             "Frobenius matrix" => "invariants/frobenius_matrix.md",
@@ -38,6 +37,10 @@ makedocs(
             "Jacobians" => "invariants/jacobians.md",
         ],
         "Utilities" => "utilities.md",
+        "Experimental" => [
+            "Experimental algorithms" => "experimental/index.md",
+            "Double covers" => "experimental/double_covers.md",
+        ],
     ],
     format = Documenter.HTML(
         prettyurls = get(ENV, "CI", "false") == "true",
