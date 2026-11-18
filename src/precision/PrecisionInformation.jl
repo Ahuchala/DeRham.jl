@@ -12,7 +12,7 @@ function calculate_precision_information(fe::ZetaFrontend, basis, verbose = 0)
     p = Int64(characteristic(parent(f)))
     n = nvars(parent(f)) - 1
     d = total_degree(f)
-    P = presentation(fe)
+    P = cohomology_quotient(fe)
 
     hodge_polygon = _hodge_polygon(basis, P)
     hodge_numbers = hodge_polygon.slopelengths
@@ -194,7 +194,7 @@ function precision_information(fe::ZetaFrontend, basis, verbose = 0)
     p = Int64(characteristic(parent(f)))
     n = nvars(parent(f)) - 1
     d = total_degree(f)
-    P = presentation(fe)
+    P = cohomology_quotient(fe)
 
     hodge_polygon = _hodge_polygon(basis, P)
     hodge_numbers = hodge_polygon.slopelengths

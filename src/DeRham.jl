@@ -88,7 +88,7 @@ using GPUFiniteFieldMatrices:
 
 include("Utils.jl")
 include("ZetaFunctionParams.jl")
-include("presentations/CohomologyQuotient.jl")
+include("quotients/CohomologyQuotient.jl")
 include("frontends/ZetaFrontend.jl")
 include("frontends/ProjectiveHypersurface.jl")
 include("frontends/DoubleCover.jl")

@@ -30,9 +30,9 @@ end
     Rcurve, (x, z) = polynomial_ring(GF(5), ["x", "z"])
     quartic = x^4 + z^4
     curve = DeRham.DoubleCover(quartic)
-    P = DeRham.presentation(curve)
+    P = DeRham.cohomology_quotient(curve)
     @test DeRham.polynomial(curve) === quartic
-    @test P == DeRham.DoubleCoverPresentation(1, 4)
+    @test P == DeRham.DoubleCoverQuotient(1, 4)
     @test DeRham.weight(curve) == 1
     @test DeRham.check_input(curve) === nothing
     @test typeof(DeRham.frobenius_term_pole_order(curve, 1, 0)) == Int
@@ -82,10 +82,8 @@ end
 
     odd_branch = x^3 + z^3
     @test_throws ArgumentError DeRham.DoubleCover(odd_branch)
-    mismatched_odd_frontend = DeRham.DoubleCover{typeof(odd_branch)}(
-        odd_branch,
-        DeRham.DoubleCoverPresentation(1, 4),
-    )
+    mismatched_odd_frontend =
+        DeRham.DoubleCover{typeof(odd_branch)}(odd_branch, DeRham.DoubleCoverQuotient(1, 4))
     @test_throws ArgumentError DeRham.check_input(mismatched_odd_frontend)
 
     Rchar2, (u, v) = polynomial_ring(GF(2), ["u", "v"])
@@ -134,7 +132,7 @@ end
 
     for (id, fe, p, expected_ascending, precision_increment, expected_pair) in suite_cases
         basis = DeRham.get_basis_of_cohomology(fe)
-        polygon = DeRham._hodge_polygon(basis, DeRham.presentation(fe))
+        polygon = DeRham._hodge_polygon(basis, DeRham.cohomology_quotient(fe))
         relative_precision =
             DeRham.calculate_relative_precision(polygon, DeRham.weight(fe), p)
         N = 2 + precision_increment
@@ -167,7 +165,8 @@ end
         x5^6 + 3*x5*y5^5 + x5*y5^2*z5^3 + y5^6 + 2*y5^3*z5^3 + 4*y5^2*z5^4 + z5^6,
     )
     sextic_basis = DeRham.get_basis_of_cohomology(double_sextic)
-    sextic_polygon = DeRham._hodge_polygon(sextic_basis, DeRham.presentation(double_sextic))
+    sextic_polygon =
+        DeRham._hodge_polygon(sextic_basis, DeRham.cohomology_quotient(double_sextic))
     sextic_relative_precision =
         DeRham.calculate_relative_precision(sextic_polygon, DeRham.weight(double_sextic), 5)
     sextic_M = maximum(sextic_relative_precision) + 4

@@ -135,7 +135,7 @@ end
 
 function _frobenius_prescale_factors(fe::DoubleCover, m, N)
     N == 0 && return QQFieldElem[]
-    P = presentation(fe)
+    P = cohomology_quotient(fe)
     pole_orders = BigInt[frobenius_term_pole_order(fe, m, j) for j = 0:(N-1)]
     factors = Vector{QQFieldElem}(undef, N)
     scale = QQ(1)

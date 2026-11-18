@@ -3,7 +3,7 @@
     cubic = x^2*y + y^2*z + z^2*x
     cubic_frontend = DeRham.ProjectiveHypersurface(cubic)
     @test DeRham.polynomial(cubic_frontend) === cubic
-    @test DeRham.presentation(cubic_frontend) == DeRham.HypersurfacePresentation(2, 3)
+    @test DeRham.cohomology_quotient(cubic_frontend) == DeRham.HypersurfaceQuotient(2, 3)
     @test DeRham.weight(cubic_frontend) == 1
     @test DeRham.check_input(cubic_frontend) === nothing
     @test DeRham.check_smoothness(cubic)
@@ -40,9 +40,9 @@
         @test DeRham.reduction_prescale(cubic_frontend, n - i) == factorial(ZZ(n - 1 - i))
     end
 
-    dimension = DeRham.presentation(cubic_frontend).n
+    dimension = DeRham.cohomology_quotient(cubic_frontend).n
     p = Int(characteristic(parent(cubic)))
-    orders = DeRham.pole_orders(DeRham.presentation(cubic_frontend))
+    orders = DeRham.pole_orders(DeRham.cohomology_quotient(cubic_frontend))
     scale_basis = [[nothing, m] for m in orders]
     N_m = [1, 2]
     expected_scale_exponents = [

@@ -5,19 +5,19 @@ The zeta frontend for the double cover of projective space branched along `F`.
 """
 struct DoubleCover{F} <: ZetaFrontend
     F::F
-    P::DoubleCoverPresentation
+    P::DoubleCoverQuotient
 end
 
 function DoubleCover(F)
     n = nvars(parent(F)) - 1
     d = total_degree(F)
-    return DoubleCover{typeof(F)}(F, DoubleCoverPresentation(n, d))
+    return DoubleCover{typeof(F)}(F, DoubleCoverQuotient(n, d))
 end
 
 DoubleCover{F}(f::F) where {F} = DoubleCover(f)
 
 polynomial(fe::DoubleCover) = fe.F
-presentation(fe::DoubleCover) = fe.P
+cohomology_quotient(fe::DoubleCover) = fe.P
 weight(fe::DoubleCover) = fe.P.n
 
 function check_input(fe::DoubleCover)
@@ -37,7 +37,7 @@ end
 function reduction_prescale(fe::DoubleCover, m::Integer)
     m >= 1 || throw(ArgumentError("the pole order must be positive"))
     scale = QQ(1)
-    P = presentation(fe)
+    P = cohomology_quotient(fe)
     for j = 1:(m-1)
         scale *= inv(reduction_scalar(P, j))
     end
@@ -45,7 +45,7 @@ function reduction_prescale(fe::DoubleCover, m::Integer)
 end
 
 frobenius_series(fe::DoubleCover, N, m) =
-    computeD_half_integral(N, pole_exponent(presentation(fe), m))
+    computeD_half_integral(N, pole_exponent(cohomology_quotient(fe), m))
 
 function frobenius_term_pole_order(fe::DoubleCover, m, j)
     p = Int(characteristic(parent(polynomial(fe))))

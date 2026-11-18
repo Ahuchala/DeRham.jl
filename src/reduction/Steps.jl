@@ -242,7 +242,7 @@ function costadata_of_initial_term!(term, g, n, d, P, p, S, cache, params)
 end
 
 function costadata_of_initial_term!(term, g, n, d, p, S, cache, params)
-    P = HypersurfacePresentation(n, d)
+    P = HypersurfaceQuotient(n, d)
     return costadata_of_initial_term!(term, g, n, d, P, p, S, cache, params)
 end
 
@@ -338,7 +338,7 @@ function poly_of_end_costadata(costadata, PR, P, p, d, n, params)
 end
 
 function poly_of_end_costadata(costadata, PR, p, d, n, params)
-    P = HypersurfacePresentation(n, d)
+    P = HypersurfaceQuotient(n, d)
     return poly_of_end_costadata(costadata, PR, P, p, d, n, params)
 end
 
@@ -372,6 +372,6 @@ function poly_of_end_costadatas(costadatas, PR, P, p, d, n, S, params)
 end
 
 function poly_of_end_costadatas(costadatas, PR, p, d, n, S, params)
-    P = HypersurfacePresentation(n, d)
+    P = HypersurfaceQuotient(n, d)
     return poly_of_end_costadatas(costadatas, PR, P, p, d, n, S, params)
 end

@@ -28,6 +28,6 @@ end
 function reducetransform(FT, N_m, S, f, pseudoInverseMat, p, params, cache, context)
     n = nvars(parent(f)) - 1
     d = total_degree(f)
-    P = HypersurfacePresentation(n, d)
+    P = HypersurfaceQuotient(n, d)
     return reducetransform(FT, N_m, S, f, P, pseudoInverseMat, p, params, cache, context)
 end

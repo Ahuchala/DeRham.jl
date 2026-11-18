@@ -1,25 +1,25 @@
-@testset "cohomology presentations" begin
+@testset "cohomology quotients" begin
     for (n, d) in ((1, 3), (1, 4), (2, 4), (3, 3))
-        presentation = DeRham.HypersurfacePresentation(n, d)
-        @test presentation isa DeRham.CohomologyQuotient
-        @test DeRham.pole_orders(presentation) == 1:n
-        @test DeRham.terminal_pole_order(presentation) == n
-        @test DeRham.numerator_degree(presentation, n) == d * n - (n + 1)
+        quotient = DeRham.HypersurfaceQuotient(n, d)
+        @test quotient isa DeRham.CohomologyQuotient
+        @test DeRham.pole_orders(quotient) == 1:n
+        @test DeRham.terminal_pole_order(quotient) == n
+        @test DeRham.numerator_degree(quotient, n) == d * n - (n + 1)
         for m = 1:n
-            @test DeRham.numerator_degree(presentation, m) == d * m - (n + 1)
-            @test DeRham.pole_exponent(presentation, m) == m
-            @test DeRham.reduction_scalar(presentation, m) == Oscar.QQ(1, m)
+            @test DeRham.numerator_degree(quotient, m) == d * m - (n + 1)
+            @test DeRham.pole_exponent(quotient, m) == m
+            @test DeRham.reduction_scalar(quotient, m) == Oscar.QQ(1, m)
         end
     end
 
-    @test_throws ArgumentError DeRham.DoubleCoverPresentation(2, 3)
+    @test_throws ArgumentError DeRham.DoubleCoverQuotient(2, 3)
 
     Rcurve, (x, y) = polynomial_ring(GF(11), ["x", "y"])
     params = DeRham.default_params()
     for genus = 1:4
         d = 2 * genus + 2
         f = x^d + y^d
-        P = DeRham.DoubleCoverPresentation(1, d)
+        P = DeRham.DoubleCoverQuotient(1, d)
         @test P isa DeRham.CohomologyQuotient
         @test DeRham.pole_orders(P) == 1:2
         @test DeRham.terminal_pole_order(P) == 2
@@ -36,20 +36,20 @@
 
     Rsurface, (a, b, c) = polynomial_ring(GF(7), ["a", "b", "c"])
     sextic = a^6 + b^6 + c^6
-    surface_presentation = DeRham.DoubleCoverPresentation(2, 6)
+    surface_quotient = DeRham.DoubleCoverQuotient(2, 6)
     surface_cache =
-        DeRham.controlled_reduction_cache(2, 6, [0, 1, 2], params, surface_presentation)
+        DeRham.controlled_reduction_cache(2, 6, [0, 1, 2], params, surface_quotient)
     surface_basis =
-        DeRham.compute_monomial_bases(sextic, surface_presentation, params, surface_cache)
+        DeRham.compute_monomial_bases(sextic, surface_quotient, params, surface_cache)
     @test length.(surface_basis) == [1, 19, 1]
     @test sum(length, surface_basis) == 21
 
     quartic = a^4 + b^4 + c^4
-    quartic_presentation = DeRham.DoubleCoverPresentation(2, 4)
+    quartic_quotient = DeRham.DoubleCoverQuotient(2, 4)
     quartic_cache =
-        DeRham.controlled_reduction_cache(2, 4, [0, 1, 2], params, quartic_presentation)
+        DeRham.controlled_reduction_cache(2, 4, [0, 1, 2], params, quartic_quotient)
     quartic_basis =
-        DeRham.compute_monomial_bases(quartic, quartic_presentation, params, quartic_cache)
+        DeRham.compute_monomial_bases(quartic, quartic_quotient, params, quartic_cache)
     @test isempty(quartic_basis[1])
     @test isempty(quartic_basis[end])
 end

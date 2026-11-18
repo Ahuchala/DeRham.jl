@@ -5,19 +5,19 @@ The zeta frontend for the hypersurface defined by `f`.
 """
 struct ProjectiveHypersurface{F} <: ZetaFrontend
     f::F
-    P::HypersurfacePresentation
+    P::HypersurfaceQuotient
 end
 
 function ProjectiveHypersurface(f)
     n = nvars(parent(f)) - 1
     d = total_degree(f)
-    return ProjectiveHypersurface{typeof(f)}(f, HypersurfacePresentation(n, d))
+    return ProjectiveHypersurface{typeof(f)}(f, HypersurfaceQuotient(n, d))
 end
 
 ProjectiveHypersurface{F}(f::F) where {F} = ProjectiveHypersurface(f)
 
 polynomial(fe::ProjectiveHypersurface) = fe.f
-presentation(fe::ProjectiveHypersurface) = fe.P
+cohomology_quotient(fe::ProjectiveHypersurface) = fe.P
 weight(fe::ProjectiveHypersurface) = fe.P.n - 1
 
 check_input(::ProjectiveHypersurface) = nothing

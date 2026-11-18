@@ -19,7 +19,7 @@ constructed.
 function get_basis_of_cohomology(fe::ZetaFrontend)
     check_input(fe)
     f = polynomial(fe)
-    P = presentation(fe)
+    P = cohomology_quotient(fe)
     n = nvars(parent(f)) - 1
     d = total_degree(f)
 

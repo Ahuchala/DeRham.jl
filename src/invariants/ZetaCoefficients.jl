@@ -149,7 +149,7 @@ function zeta_coefficients(
 
     check_input(fe)
     f = polynomial(fe)
-    P = presentation(fe)
+    P = cohomology_quotient(fe)
     PR = parent(f)
     R = coefficient_ring(PR)
     p = Int64(characteristic(PR))
@@ -288,7 +288,7 @@ function zeta_coefficients(
         (0 < verbose) && println("New model is $f")
         fe = typeof(fe)(f)
         f = polynomial(fe)
-        P = presentation(fe)
+        P = cohomology_quotient(fe)
         basis = compute_monomial_bases(f, P, params, cache) # basis of cohomology
         Basis = []
         for (i, m) in enumerate(pole_orders(P))

@@ -1,4 +1,4 @@
-@testset "graded exponent cache and presentation degrees" begin
+@testset "graded exponent cache and quotient degrees" begin
     cache = DeRham.PolyExpCache(3, :invlex, [2], [2])
     @test !isempty(cache[2])
     @test isempty(cache[-1])
@@ -30,9 +30,9 @@
         3,
         [0, 1, 2],
         DeRham.default_params(),
-        DeRham.HypersurfacePresentation(2, 3),
+        DeRham.HypersurfaceQuotient(2, 3),
     )
-    @test DeRham._reduction_g_degree(DeRham.HypersurfacePresentation(2, 3)) == 4
+    @test DeRham._reduction_g_degree(DeRham.HypersurfaceQuotient(2, 3)) == 4
     @test DeRham.cached_degrees(forward_cache) == [1, 2, 3, 4]
     @test DeRham.cached_reverse_lookups(forward_cache) == [3, 4]
 
@@ -41,15 +41,15 @@
         4,
         [3],
         DeRham.default_params(),
-        DeRham.HypersurfacePresentation(3, 4),
+        DeRham.HypersurfaceQuotient(3, 4),
     )
-    @test DeRham._reduction_g_degree(DeRham.HypersurfacePresentation(3, 4)) == 9
+    @test DeRham._reduction_g_degree(DeRham.HypersurfaceQuotient(3, 4)) == 9
     @test DeRham.cached_degrees(variable_cache) == [1, 4, 5, 8, 9, 12]
     @test DeRham.cached_reverse_lookups(variable_cache) == [4, 9, 12]
 
     R, (x, y, z) = polynomial_ring(GF(2), ["x", "y", "z"])
     f = x^2*y + y^2*z + z^2*x
-    P = DeRham.HypersurfacePresentation(2, 3)
+    P = DeRham.HypersurfaceQuotient(2, 3)
     basis = [[x, 1], [y, 2], [z, 2]]
     @test DeRham._hodge_polygon(basis, P).slopelengths == [2, 1]
     @test DeRham.get_basis_of_cohomology(DeRham.ProjectiveHypersurface(f)) ==

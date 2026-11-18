@@ -13,7 +13,7 @@ g - vector
 m - pole order
 S - vector of ints
 f - polynomial
-P - cohomology presentation
+P - cohomology quotient
 p - prime number
 context - ControlledReductionContext
 cache - the GradedExpCache used for this controlled reduction

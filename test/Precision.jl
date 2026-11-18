@@ -329,7 +329,7 @@ function test_user_relative_precision_bypasses_default_table()
 end
 
 function test_explicit_precision_information()
-    P = DeRham.HypersurfacePresentation(2, 3)
+    P = DeRham.HypersurfaceQuotient(2, 3)
     polygon = DeRham.SlopesPolygon([1, 1])
 
     scalar_info = DeRham._explicit_precision_information(

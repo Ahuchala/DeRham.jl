@@ -24,7 +24,7 @@ end
 function is_Ssmooth(f, S)
     n = nvars(parent(f)) - 1
     d = total_degree(f)
-    P = HypersurfacePresentation(n, d)
+    P = HypersurfaceQuotient(n, d)
     return is_Ssmooth(f, P, S)
 end
 
@@ -117,6 +117,6 @@ end
 function find_Ssmooth_model(f, M, S_target, params, changef, cache)
     n = nvars(parent(f)) - 1
     d = total_degree(f)
-    P = HypersurfacePresentation(n, d)
+    P = HypersurfaceQuotient(n, d)
     return find_Ssmooth_model(f, P, M, S_target, params, changef, cache)
 end

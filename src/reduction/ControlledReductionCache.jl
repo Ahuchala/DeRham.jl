@@ -1,5 +1,4 @@
-_reduction_g_degree(P::CohomologyQuotient) =
-    numerator_degree(P, terminal_pole_order(P)) + 1
+_reduction_g_degree(P::CohomologyQuotient) = numerator_degree(P, terminal_pole_order(P)) + 1
 
 """
     controlled_reduction_cache
@@ -31,9 +30,9 @@ n - int
 d - int
 S - vector of ints
 params - the ControlledReductionParamaters
-P - cohomology presentation; defaults to the hypersurface presentation for n and d
+P - cohomology quotient; defaults to the hypersurface quotient for n and d
 """
-function controlled_reduction_cache(n, d, S, params, P = HypersurfacePresentation(n, d))
+function controlled_reduction_cache(n, d, S, params, P = HypersurfaceQuotient(n, d))
     g = _reduction_g_degree(P)
     s = length(S)
     degsforward = [g, g - 1, g - s, g - s + 1, g + d - s, d]

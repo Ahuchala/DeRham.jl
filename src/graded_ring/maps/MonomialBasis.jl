@@ -87,7 +87,7 @@ end
 function compute_monomial_bases(f, params, cache)
     n = nvars(parent(f)) - 1
     d = total_degree(f)
-    P = HypersurfacePresentation(n, d)
+    P = HypersurfaceQuotient(n, d)
     compute_monomial_bases(f, P, params, cache)
 end
 
@@ -111,7 +111,7 @@ end
 function get_basis_of_cohomology_twoflavors(f, S, params, cache)
     n = nvars(parent(f)) - 1
     d = total_degree(f)
-    P = HypersurfacePresentation(n, d)
+    P = HypersurfaceQuotient(n, d)
     get_basis_of_cohomology_twoflavors(f, P, S, params, cache)
 end
 

@@ -13,7 +13,7 @@ cache - the GradedExpCache used for this controlled reduction
 """
 function computeT(fe::ZetaFrontend, Basis, M, params, cache)
     f = polynomial(fe)
-    P = presentation(fe)
+    P = cohomology_quotient(fe)
     p = characteristic(parent(f))
     n = nvars(parent(f)) - 1
     d = total_degree(f)
@@ -252,7 +252,7 @@ function compute_frobenius_matrix(
     output_ring = _frobenius_output_ring(p, modulus(R), maximum(scale_exponents))
     frob_mat_temp = []
     denomArray = []
-    P = presentation(fe)
+    P = cohomology_quotient(fe)
     ev = cache[numerator_degree(P, terminal_pole_order(P))]
     VS = matrix_space(R, length(ev), 1)
     for i in eachindex(Reductions)

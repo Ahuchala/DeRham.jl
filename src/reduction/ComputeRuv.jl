@@ -123,6 +123,6 @@ end
 function computeRuvS(V, S, f, pseudoInverseMat, cache, params)
     n = nvars(parent(f)) - 1
     d = total_degree(f)
-    P = HypersurfacePresentation(n, d)
+    P = HypersurfaceQuotient(n, d)
     return computeRuvS(V, S, f, P, pseudoInverseMat, cache, params)
 end
