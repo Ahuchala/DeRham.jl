@@ -88,6 +88,10 @@ using GPUFiniteFieldMatrices:
 
 include("Utils.jl")
 include("ZetaFunctionParams.jl")
+include("quotients/CohomologyQuotient.jl")
+include("frontends/ZetaFrontend.jl")
+include("frontends/ProjectiveHypersurface.jl")
+include("frontends/DoubleCover.jl")
 include("graded_ring/GradedExpCache.jl")
 include("recurrence/backend/NemoDerivedWrappers.jl")
 include("recurrence/backend/LinearAlgebraWrappers.jl")
@@ -165,6 +169,8 @@ export zeta_coefficients,
 
 public fermat_hypersurface,
     random_hypersurface,
+    DoubleCover,
+    get_basis_of_cohomology,
     check_smoothness,
     SlopesPolygon,
     tate_twist,

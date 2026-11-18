@@ -22,6 +22,20 @@ notes-tag rules, records, and runtime measurement.
   determines the invariant. Use the `derham-invariants` notes tag only for
   values that `Lpoly` does not determine; see the E2E README for its format.
 
+## Experimental and proven algorithms
+
+- Proven algorithms have a proof of correctness. Experimental algorithms have
+  no proof of correctness; this includes algorithms whose precision choices
+  are not certified.
+- Experimental algorithms are documented in the "Experimental" section of
+  the documentation, not alongside the proven invariants.
+- Symbols for experimental algorithms are public but not exported: declare
+  them with `public` in `src/DeRham.jl`, never with `export`.
+- For `zeta_function` and its variants (`zeta_coefficients`, `L_polynomial`,
+  and other coefficient-based entry points), experimental algorithms may take
+  `series_precision` and `algorithm_precision` inputs. Proven algorithms
+  calculate their own precision and do not take those inputs.
+
 ## Source layout
 
 `src/` is one module, `DeRham`. Directories group files by component; they are

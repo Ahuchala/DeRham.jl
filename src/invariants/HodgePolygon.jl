@@ -17,6 +17,11 @@ function _hodge_polygon(basis::Vector, n)
     SlopesPolygon(hodgenumbers)
 end
 
+function _hodge_polygon(basis::Vector, P::CohomologyQuotient)
+    hodgenumbers = [length(termsoforder(basis, m)) for m in reverse(pole_orders(P))]
+    SlopesPolygon(hodgenumbers)
+end
+
 """
     hodge_polygon(n, d)
 
