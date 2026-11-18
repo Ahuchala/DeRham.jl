@@ -34,6 +34,8 @@ end
     expected_public = Set([
         :fermat_hypersurface,
         :random_hypersurface,
+        :DoubleCover,
+        :get_basis_of_cohomology,
         :check_smoothness,
         :SlopesPolygon,
         :tate_twist,
@@ -48,6 +50,7 @@ end
               parentmodule(getfield(DeRhamOscarExportCheck, name)) === DeRham
     end
     @test all(Base.ispublic(DeRham, name) for name in expected_public)
+    @test all(isdefined(DeRham, name) for name in expected_public)
     @test !any(Base.isexported(DeRham, name) for name in expected_public)
 end
 

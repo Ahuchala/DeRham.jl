@@ -37,6 +37,10 @@ makedocs(
             "Jacobians" => "invariants/jacobians.md",
         ],
         "Utilities" => "utilities.md",
+        "Experimental" => [
+            "Experimental algorithms" => "experimental/index.md",
+            "Double covers" => "experimental/double_covers.md",
+        ],
     ],
     format = Documenter.HTML(
         prettyurls = get(ENV, "CI", "false") == "true",
