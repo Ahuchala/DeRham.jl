@@ -59,3 +59,38 @@
     @test cached_first[1, 1] == 3
     @test backing_compute_calls[] == 2
 end
+
+@testset "setup rebinds a reused context across polynomials" begin
+    _, (x, y, z) = polynomial_ring(GF(5), ["x", "y", "z"])
+    S = [0, 1, 2]
+    first_polynomial = x^3 + y^3 + z^3
+    second_polynomial = x^3 + y^3 + z^3 + 3 * x * y * z
+    make_context = () -> DeRham.pregen_default_context(
+        2,
+        3,
+        5,
+        S;
+        algorithm = :depthfirst,
+        fastevaluation = false,
+    )
+    run = (f, context) -> DeRham.zeta_coefficients(
+        f;
+        S,
+        algorithm = :depthfirst,
+        context,
+        changef = false,
+        fastevaluation = false,
+    )
+
+    reused_context = make_context()
+    reused_first = run(first_polynomial, reused_context)
+    reused_second = run(second_polynomial, reused_context)
+    fresh_first = run(first_polynomial, make_context())
+    fresh_second = run(second_polynomial, make_context())
+
+    @test reused_first !== false
+    @test reused_second !== false
+    @test reused_first == fresh_first
+    @test reused_second == fresh_second
+    @test !isempty(reused_context.Ruvs.Vs)
+end
