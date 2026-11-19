@@ -22,7 +22,8 @@ weight(fe::ProjectiveHypersurface) = fe.P.n - 1
 
 check_input(::ProjectiveHypersurface) = nothing
 
-reduction_prescale(::ProjectiveHypersurface, m::Integer) = factorial(ZZ(m - 1))
+reduction_prescale(fe::ProjectiveHypersurface, m::Integer) =
+    reduction_prescale(fe.P, m)
 
 frobenius_series(::ProjectiveHypersurface, N, m) = computeD(N, m)
 

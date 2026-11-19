@@ -34,15 +34,7 @@ function check_input(fe::DoubleCover)
     return nothing
 end
 
-function reduction_prescale(fe::DoubleCover, m::Integer)
-    m >= 1 || throw(ArgumentError("the pole order must be positive"))
-    scale = QQ(1)
-    P = cohomology_quotient(fe)
-    for j = 1:(m-1)
-        scale *= inv(reduction_scalar(P, j))
-    end
-    return scale
-end
+reduction_prescale(fe::DoubleCover, m::Integer) = reduction_prescale(fe.P, m)
 
 frobenius_series(fe::DoubleCover, N, m) =
     computeD_half_integral(N, pole_exponent(cohomology_quotient(fe), m))
