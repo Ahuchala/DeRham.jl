@@ -217,7 +217,7 @@ function reducetransform_depthfirst(
                 if (0 < params.verbose)
                     println("Reducing vector $i in thread $(Threads.threadid())")
                     @time reduction =
-                        reducepoly_depthfirst(pol, S, f, P, p, context, cache, params)
+                        reducepoly_depthfirst(pol, S, f, P, fe, p, context, cache, params)
                 else
                     reduction =
                         reducepoly_depthfirst(pol, S, f, P, fe, p, context, cache, params)
@@ -233,7 +233,7 @@ function reducetransform_depthfirst(
                 if (0 < params.verbose)
                     println("Reducing vector $i")
                     @time reduction =
-                        reducepoly_depthfirst(pol, S, f, P, p, context, cache, params)
+                        reducepoly_depthfirst(pol, S, f, P, fe, p, context, cache, params)
                 else
                     reduction =
                         reducepoly_depthfirst(pol, S, f, P, fe, p, context, cache, params)
