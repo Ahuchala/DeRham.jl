@@ -30,6 +30,22 @@ function zeta_coefficients_from_frobenius(
 end
 
 
+function _default_reduction_selection(f, P, S)
+    n = P.n
+    if S == [n]
+        return :varbyvar, S, nothing
+    elseif n > 4
+        for i = 0:n
+            if is_Ssmooth(f, P, [n-i])
+                return :varbyvar, [n], i
+            elseif i == n
+                return :depthfirst, S, nothing
+            end
+        end
+    end
+    return :depthfirst, S, nothing
+end
+
 """
     zeta_coefficients(fe::ZetaFrontend; ...)
 
@@ -166,28 +182,16 @@ function zeta_coefficients(
     end
 
     if algorithm == :default
-        if S == [n]
-            algorithm = :varbyvar
-        elseif n > 4
-            for i = 0:n
-                if is_Ssmooth(f, P, [n-i])
-                    algorithm = :varbyvar
-                    S = [n]
-                    vars = gens(PR)
-                    new_vars = copy(vars)
-                    for j = 0:n
-                        if j == i
-                            new_vars[i+1] = vars[n+1]
-                        end
-                    end
-                    new_vars[n+1] = vars[i+1]
-                    break
-                elseif i == n
-                    algorithm = :depthfirst
+        algorithm, S, selected_variable = _default_reduction_selection(f, P, S)
+        if selected_variable !== nothing
+            vars = gens(PR)
+            new_vars = copy(vars)
+            for j = 0:n
+                if j == selected_variable
+                    new_vars[selected_variable+1] = vars[n+1]
                 end
             end
-        else
-            algorithm = :depthfirst
+            new_vars[n+1] = vars[selected_variable+1]
         end
     end
 

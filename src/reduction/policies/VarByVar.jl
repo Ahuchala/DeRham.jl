@@ -1,4 +1,13 @@
 
+function _varbyvar_evaluation_kernel(params, d, n, modulus)
+    if params.use_gpu && !(ZZ(2)^25 < modulus < ZZ(2)^106)
+        return eval_to_linear_gpu!
+    elseif params.use_gpu && d == 3 && (n == 4 || n == 5)
+        return eval_to_linear_gpu_karatsuba!
+    end
+    return eval_to_linear!
+end
+
 function reducechain_varbyvar(u, g, m, S, f, p, context, cache, params)
     n = nvars(parent(f)) - 1
     d = total_degree(f)
@@ -56,20 +65,8 @@ function reducechain_varbyvar(u, g, m, S, f, p, context, cache, params)
         (4 < params.verbose) && println("Getting Ruv matrices; ")
         matrices = context.Ruvs[V]
         (4 < params.verbose) && println("Computing A and B; ")
-        if params.use_gpu && !(ZZ(2)^25 < modm < ZZ(2)^106) # so not Karatsuba
-            eval_to_linear_gpu!(context.B, context.A, context.temp, matrices, mins, V)
-        elseif params.use_gpu && d == 3 && (n == 4 || n == 5)# karatsuba
-            eval_to_linear_gpu_karatsuba!(
-                context.B,
-                context.A,
-                context.temp,
-                matrices,
-                mins,
-                V,
-            )
-        else
-            eval_to_linear!(context.B, context.A, context.temp, matrices, mins, V)
-        end
+        evaluation_kernel = _varbyvar_evaluation_kernel(params, d, n, modm)
+        evaluation_kernel(context.B, context.A, context.temp, matrices, mins, V)
         (4 < params.verbose) && println("Starting the reduction steps; ")
         gMat = finitediff_prodeval_linear!(
             context.B,
