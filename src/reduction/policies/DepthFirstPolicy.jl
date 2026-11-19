@@ -24,11 +24,8 @@ function run_reduction_policy!(
 
     for (_, inputs) in keys_by_order
         for input in inputs
-            chain = materialize(
-                engine,
-                ReductionChainKey(input.key[1], input.key[2]),
-                input,
-            )
+            chain =
+                materialize(engine, ReductionChainKey(input.key[1], input.key[2]), input)
             key = reduction_chain_key(engine, chain)
             while key.order > terminal_order
                 direction = rev_chooseV(collect(key.u), policy.degree, policy.S)

@@ -4,8 +4,9 @@ end
 
 function _depthfirst_engine_factory(execution_setup, fe, P, S, cache, params, directions)
     return () -> begin
-        fill_vector! = (vector, key, input) ->
-            reduction_input_vector!(vector, fe, input, S, cache, params)
+        fill_vector! =
+            (vector, key, input) ->
+                reduction_input_vector!(vector, fe, input, S, cache, params)
         preconfigured = if execution_setup.preconfigured_engine === nothing
             PreconfiguredReductionEngine(execution_setup.context_factory())
         else
@@ -37,15 +38,16 @@ function _reducepoly_depthfirst!(
 )
     keys_by_order = reduction_input_keys(fe, pol, S)
     terminal_polynomial = Ref(PR())
-    on_terminal = chain -> begin
-        terminal_polynomial[] = reduction_add_terminal_chain(
-            fe,
-            terminal_polynomial[],
-            chain,
-            PR,
-            params,
-        )
-    end
+    on_terminal =
+        chain -> begin
+            terminal_polynomial[] = reduction_add_terminal_chain(
+                fe,
+                terminal_polynomial[],
+                chain,
+                PR,
+                params,
+            )
+        end
     run_reduction_policy!(policy, runtime.engine, keys_by_order, directions, on_terminal)
     return _finish_reduction_terminal_polynomial(fe, terminal_polynomial[], PR, S)
 end

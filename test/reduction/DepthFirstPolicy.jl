@@ -65,14 +65,21 @@ end
     inputs = [(key = ([4, 4, 4], 4), terms = []), (key = ([3, 4, 4], 4), terms = [])]
 
     terminal_chains = DeRham.ReductionChainKey[]
-    on_terminal = chain -> begin
-        finish_count = count(event -> event.operation == :finish, engine.events)
-        @test finish_count == length(terminal_chains) + 1
-        @test DeRham.accounting_result(engine).live_chains == 0
-        push!(terminal_chains, chain)
-    end
+    on_terminal =
+        chain -> begin
+            finish_count = count(event -> event.operation == :finish, engine.events)
+            @test finish_count == length(terminal_chains) + 1
+            @test DeRham.accounting_result(engine).live_chains == 0
+            push!(terminal_chains, chain)
+        end
     @test isnothing(
-        DeRham.run_reduction_policy!(policy, engine, [(4, inputs)], directions, on_terminal),
+        DeRham.run_reduction_policy!(
+            policy,
+            engine,
+            [(4, inputs)],
+            directions,
+            on_terminal,
+        ),
     )
 
     result = DeRham.accounting_result(engine)
@@ -92,18 +99,18 @@ end
         1,
         Dict{Int,Tuple{DeRham.ReductionChainKey,Int}}(),
     )
-    duplicate_key_inputs = [
-        (key = ([4, 4, 4], 4), value = 2),
-        (key = ([4, 4, 4], 4), value = 3),
-    ]
+    duplicate_key_inputs =
+        [(key = ([4, 4, 4], 4), value = 2), (key = ([4, 4, 4], 4), value = 3)]
     opaque_chains = Int[]
     opaque_consumer = chain -> push!(opaque_chains, last(chain))
-    @test isnothing(DeRham.run_reduction_policy!(
-        policy,
-        opaque_engine,
-        [(4, duplicate_key_inputs)],
-        directions,
-        opaque_consumer,
-    ))
+    @test isnothing(
+        DeRham.run_reduction_policy!(
+            policy,
+            opaque_engine,
+            [(4, duplicate_key_inputs)],
+            directions,
+            opaque_consumer,
+        ),
+    )
     @test sort(opaque_chains) == [2, 3]
 end

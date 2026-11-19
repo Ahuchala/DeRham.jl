@@ -65,22 +65,24 @@ end
     S = [0, 1, 2]
     first_polynomial = x^3 + y^3 + z^3
     second_polynomial = x^3 + y^3 + z^3 + 3 * x * y * z
-    make_context = () -> DeRham.pregen_default_context(
-        2,
-        3,
-        5,
-        S;
-        algorithm = :depthfirst,
-        fastevaluation = false,
-    )
-    run = (f, context) -> DeRham.zeta_coefficients(
-        f;
-        S,
-        algorithm = :depthfirst,
-        context,
-        changef = false,
-        fastevaluation = false,
-    )
+    make_context =
+        () -> DeRham.pregen_default_context(
+            2,
+            3,
+            5,
+            S;
+            algorithm = :depthfirst,
+            fastevaluation = false,
+        )
+    run =
+        (f, context) -> DeRham.zeta_coefficients(
+            f;
+            S,
+            algorithm = :depthfirst,
+            context,
+            changef = false,
+            fastevaluation = false,
+        )
 
     reused_context = make_context()
     reused_first = run(first_polynomial, reused_context)

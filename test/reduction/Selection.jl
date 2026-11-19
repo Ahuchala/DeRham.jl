@@ -133,8 +133,7 @@
         setup_frontend,
         mismatched_thread_params,
     )
-    rebound_frontend =
-        DeRham.ProjectiveHypersurface(setup_f + setup_variables[1]^3)
+    rebound_frontend = DeRham.ProjectiveHypersurface(setup_f + setup_variables[1]^3)
     @test DeRham._validate_reduction_execution_setup(
         setup_configuration,
         rebound_frontend,

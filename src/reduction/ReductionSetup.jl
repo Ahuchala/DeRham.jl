@@ -141,8 +141,11 @@ function _validate_reduction_execution_setup(configuration, fe, params)
         throw(ArgumentError("the GPU option does not match the reduction setup"))
     params.use_threads == configuration.use_threads ||
         throw(ArgumentError("the threading option does not match the reduction setup"))
-    params.always_use_bigints == configuration.always_use_bigints ||
-        throw(ArgumentError("the integer representation option does not match the reduction setup"))
+    params.always_use_bigints == configuration.always_use_bigints || throw(
+        ArgumentError(
+            "the integer representation option does not match the reduction setup",
+        ),
+    )
     params.fastevaluation == configuration.fastevaluation ||
         throw(ArgumentError("the evaluation option does not match the reduction setup"))
     return nothing
