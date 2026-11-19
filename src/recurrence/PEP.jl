@@ -316,6 +316,55 @@ function Base.getindex(P::PregenLazyPEP, V::Vector{Int})
     return coeffs
 end
 
+function _copy_ruv_matrix!(destination::CuModArray, source)
+    copyto!(destination, source)
+    return destination
+end
+
+function _copy_ruv_matrix!(destination::KaratsubaArray, source)
+    Karatsuba_copyto!(destination, source)
+    return destination
+end
+
+function _copy_ruv_matrix!(destination, source)
+    copyto!(destination, source)
+    return destination
+end
+
+function _copy_ruv_component!(destination, source)
+    length(destination) == length(source) ||
+        throw(DimensionMismatch("the R_uv component count changed"))
+    for i in eachindex(destination, source)
+        _copy_ruv_matrix!(destination[i], source[i])
+    end
+    return destination
+end
+
+"""
+    bind_ruv_function!(pep, compute)
+
+Rebind a preconfigured PEP to a polynomial-specific R_uv function while
+refreshing cached components in their existing matrix allocations.
+"""
+function bind_ruv_function!(pep::PregenLazyPEP, compute)
+    for V in pep.Vs
+        _copy_ruv_component!(pep.Ucomponent[V], compute(V))
+    end
+    pep.compute = compute
+    return pep
+end
+
+function bind_ruv_function!(pep::CachePEP, compute)
+    bind_ruv_function!(pep.backing, compute)
+    for V in collect(cachedpoints(pep))
+        pep.convert(pep.Ucomponent[V], pep.backing[V])
+    end
+    if pep.tempV[] !== nothing
+        pep.convert(pep.temp[], pep.backing[pep.tempV[]])
+    end
+    return pep
+end
+
 
 """
 A LRULazyPEP{T} is a PEP with coefficients of type T.

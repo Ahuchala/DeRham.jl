@@ -24,6 +24,7 @@ struct ReductionExecutionSetup{C}
     representation::Symbol
     threads::Bool
     context_provided::Bool
+    preconfigured_engine::Any
 end
 
 function _validate_reduction_setup(fe, algorithm; use_gpu = false, context = nothing)
@@ -185,6 +186,7 @@ function reduction_execution_setup(
         end
         context_factory = () -> default_context(MS1, Ruv, params)
         context_type = default_context_type(MS1, params)
+        preconfigured_engine = nothing
     else
         if ZZ(2)^25 < m < ZZ(2)^106
             compute_gpu = V -> KaratsubaMat.(computeRuv(V))
@@ -193,14 +195,15 @@ function reduction_execution_setup(
         end
         compute_float = V -> float_entries.(computeRuv(V))
         if 3 < n && d == 3 && configuration.S == [n] && params.use_gpu
-            context.Ruvs.backing.compute = compute_float
+            bind_ruv_function!(context.Ruvs, compute_float)
         elseif params.use_gpu
-            context.Ruvs.compute = compute_gpu
+            bind_ruv_function!(context.Ruvs, compute_gpu)
         else
-            context.Ruvs.compute = computeRuv
+            bind_ruv_function!(context.Ruvs, computeRuv)
         end
         Ruv = context.Ruvs
-        context_factory = () -> context
+        preconfigured_engine = PreconfiguredReductionEngine(context)
+        context_factory = () -> preconfigured_engine.context
         context_type = typeof(context)
     end
 
@@ -227,5 +230,6 @@ function reduction_execution_setup(
         representation,
         !context_provided && configuration.use_threads,
         context_provided,
+        preconfigured_engine,
     )
 end

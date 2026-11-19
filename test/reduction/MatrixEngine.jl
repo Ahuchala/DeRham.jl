@@ -26,10 +26,11 @@
             (u, k, v) -> length(u) == 1 && sum(v) == 1 && all(u .>= k .* v),
         )
         fill_vector! = (vector, key) -> fill!(vector, 1)
+        preconfigured = DeRham.PreconfiguredReductionEngine(context)
         engine = DeRham.MatrixReductionEngine(
             DeRham.ReductionEngineGeometry(0, 1),
             directions,
-            context,
+            preconfigured,
             fill_vector!;
             fastevaluation,
         )

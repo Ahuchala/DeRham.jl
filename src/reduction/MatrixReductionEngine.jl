@@ -47,6 +47,22 @@ function MatrixReductionEngine(
     )
 end
 
+function MatrixReductionEngine(
+    geometry::ReductionEngineGeometry,
+    directions::ReductionDirectionSet,
+    preconfigured::PreconfiguredReductionEngine,
+    fill_vector!;
+    kwargs...,
+)
+    return MatrixReductionEngine(
+        geometry,
+        directions,
+        preconfigured.context,
+        fill_vector!;
+        kwargs...,
+    )
+end
+
 reduction_engine_geometry(engine::MatrixReductionEngine) = engine.geometry
 
 function _matrix_chain_state(engine::MatrixReductionEngine, chain::ReductionChainHandle)
