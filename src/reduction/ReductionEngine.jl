@@ -1,0 +1,157 @@
+"""
+    AbstractReductionEngine
+
+An execution engine for controlled reduction. An engine owns materialized
+chains, their vector representation and placement, and the operations that
+move and combine them. The engine receives only the reduction degree and
+terminal order from the cohomology quotient.
+"""
+abstract type AbstractReductionEngine end
+
+"""
+    AbstractReductionPolicy
+
+A strategy that chooses which chain to reduce, its direction and chunk length,
+and when chains at one order are combined. A policy operates through the
+`AbstractReductionEngine` interface and does not inspect vector data or
+representation.
+"""
+abstract type AbstractReductionPolicy end
+
+"""
+    ReductionEngineGeometry(reduction_degree, terminal_order)
+
+The quotient data an engine needs: the degree of its chain vectors and the
+order at which reduction stops.
+"""
+struct ReductionEngineGeometry
+    reduction_degree::Int
+    terminal_order::Int
+end
+
+ReductionEngineGeometry(P::CohomologyQuotient) =
+    ReductionEngineGeometry(_reduction_g_degree(P), terminal_pole_order(P))
+
+"""
+    ReductionChainKey(u, order)
+
+An immutable identity for one reduction chain. `u` is the exponent vector after
+the frontend's shift and degree adjustment; `order` identifies the chain's
+current reduction order.
+"""
+struct ReductionChainKey{N}
+    u::NTuple{N,Int}
+    order::Int
+end
+
+function ReductionChainKey(u::AbstractVector{<:Integer}, order::Integer)
+    return ReductionChainKey(Tuple(Int.(u)), Int(order))
+end
+
+"""
+    AbstractReductionChainHandle
+
+An opaque reference to a live chain owned by a reduction engine.
+"""
+abstract type AbstractReductionChainHandle end
+
+"""
+    ReductionChainHandle(key, identifier)
+
+A generic chain handle containing its immutable key and an engine-owned
+identifier. Engines may use their own subtypes of `AbstractReductionChainHandle`
+when a different handle representation is useful.
+"""
+struct ReductionChainHandle{K<:ReductionChainKey,I} <: AbstractReductionChainHandle
+    key::K
+    identifier::I
+end
+
+"""
+    ReductionDirectionSet(contains)
+
+A predicate for membership in the frontend's direction collection V_S(u, k).
+Call it as `directions(u, k, v)` to test a candidate direction.
+"""
+struct ReductionDirectionSet{F}
+    contains::F
+end
+
+(directions::ReductionDirectionSet)(u, k, v) = directions.contains(u, k, v)
+
+"""
+    reduction_engine_geometry(engine)
+
+Return the `ReductionEngineGeometry` consumed by the engine. It contains only
+the reduction degree and terminal order, not the cohomology quotient.
+"""
+function reduction_engine_geometry end
+
+"""
+    materialize(engine, key)
+
+Allocate a chain for `key`, fill its vector with the frontend input in the
+prescaled normalization, and return an opaque live-chain handle. The engine
+chooses the vector representation and placement.
+"""
+function materialize end
+
+"""
+    reduce!(engine, chain, v, k)
+
+Apply a reduction chunk of length `k` in direction `v` to `chain`, preserving
+the prescaled normalization used by the frontend.
+"""
+function reduce! end
+
+"""
+    reduce_batched!(engine, chains, directions, k)
+
+Reduce each chain in `chains` by a chunk of common length `k`, using the
+corresponding direction in `directions`. Version one may implement this as a
+loop over `reduce!`.
+"""
+function reduce_batched! end
+
+"""
+    combine!(engine, order)
+
+For the given order, combine live chains with equal exponent vectors by adding
+their vectors. The engine owns the resulting live-chain bookkeeping.
+"""
+function combine! end
+
+"""
+    finish!(engine, chain)
+
+Read back a terminal chain as its exponent vector and reduced vector, then free
+the live chain from the engine. The frontend converts these values to a
+polynomial.
+"""
+function finish! end
+
+"""
+    run_reduction_policy!(policy, engine, keys_by_order, directions)
+
+Run `policy` against `engine` using only frontend chain keys grouped by order
+and the frontend's `V_S` direction predicate. The policy chooses chains,
+directions, chunk lengths, and combine points through the engine interface; it
+does not receive matrices, vectors, representations, or device placement.
+Implementations return the finished terminal chains.
+"""
+function run_reduction_policy! end
+
+public AbstractReductionEngine,
+    AbstractReductionPolicy,
+    ReductionEngineGeometry,
+    ReductionChainKey,
+    AbstractReductionChainHandle,
+    ReductionChainHandle,
+    ReductionDirectionSet,
+    reduction_engine_geometry,
+    materialize,
+    reduce!,
+    reduce_batched!,
+    combine!,
+    finish!,
+    run_reduction_policy!
