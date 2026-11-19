@@ -13,7 +13,7 @@ function reducetransform(
     context,
 )
     if params.algorithm == :pchunk
-        reducetransform_pchunk(FT, N_m, S, f, pseudoInverseMat, p, cache, params, fe)
+        reducetransform_pchunk(FT, N_m, S, f, P, pseudoInverseMat, p, cache, params, fe)
     elseif params.algorithm == :depthfirst
         reducetransform_depthfirst(
             FT,
@@ -34,6 +34,7 @@ function reducetransform(
             N_m,
             S,
             f,
+            P,
             pseudoInverseMat,
             p,
             cache,

@@ -7,6 +7,7 @@ function check_input end
 function reduction_prescale end
 function reduction_ruv_function end
 function reduction_directions end
+function varbyvar_reduction_setup end
 function reduction_input_keys end
 function reduction_input_vector! end
 function reduction_terminal_polynomial end
@@ -50,6 +51,11 @@ function reduction_directions(fe::ZetaFrontend, S)
         all(i -> u[i] - k * v[i] >= 0, eachindex(u)) || return false
         all(i -> 0 <= i <= P.n && (u[i+1] == 0 || v[i+1] != 0), S)
     end
+end
+
+function varbyvar_reduction_setup(fe::ZetaFrontend, S)
+    required_S = [cohomology_quotient(fe).n]
+    return :depthfirst, S, nothing, required_S
 end
 
 """

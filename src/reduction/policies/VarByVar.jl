@@ -8,9 +8,10 @@ function _varbyvar_evaluation_kernel(params, d, n, modulus)
     return eval_to_linear!
 end
 
-function reducechain_varbyvar(u, g, m, S, f, p, context, cache, params)
+function reducechain_varbyvar(u, g, m, S, f, P, p, context, cache, params)
     n = nvars(parent(f)) - 1
     d = total_degree(f)
+    terminal = terminal_pole_order(P)
     PR = parent(f)
     R = coefficient_ring(parent(f))
 
@@ -33,7 +34,7 @@ function reducechain_varbyvar(u, g, m, S, f, p, context, cache, params)
     end
 
     highpole = true
-    if m == n
+    if m == terminal
         highpole == false
     end
     while highpole && J[l] > 0
@@ -55,7 +56,7 @@ function reducechain_varbyvar(u, g, m, S, f, p, context, cache, params)
             if isLessThanZero == true
                 break
             end
-            if m - K == n
+            if m - K == terminal
                 break
             end
             @. mins = tempv
@@ -79,7 +80,7 @@ function reducechain_varbyvar(u, g, m, S, f, p, context, cache, params)
         )
         @. J = J - K*V
         m = m - K
-        if m == n
+        if m == terminal
             highpole = false
         end
 
@@ -91,8 +92,8 @@ function reducechain_varbyvar(u, g, m, S, f, p, context, cache, params)
     return ((J, gMat), m)
 end
 
-function reducepoly_varbyvar(pol, S, f, fe, p, context, cache, params)
-    n = nvars(parent(f)) - 1
+function reducepoly_varbyvar(pol, S, f, P, fe, p, context, cache, params)
+    terminal = terminal_pole_order(P)
     PR = parent(f)
 
     vectype = typeof(context.g)
@@ -122,6 +123,7 @@ function reducepoly_varbyvar(pol, S, f, fe, p, context, cache, params)
                 allcostadata[i][2],
                 S,
                 f,
+                P,
                 p,
                 context,
                 cache,
@@ -134,7 +136,7 @@ function reducepoly_varbyvar(pol, S, f, fe, p, context, cache, params)
             remove_duplicates!(allcostadata)
         end
         for i = 1:length(allcostadata)
-            if allcostadata[i][2] > n
+            if allcostadata[i][2] > terminal
                 break
             elseif i == length(allcostadata)
                 notallred = false
@@ -150,6 +152,7 @@ function reducetransform_varbyvar(
     N_m,
     S,
     f,
+    P,
     pseudoInverseMat,
     p,
     cache,
@@ -159,7 +162,8 @@ function reducetransform_varbyvar(
 )
     d = total_degree(f)
     n = nvars(parent(f)) - 1
-    g_length = binomial(d*n, d*n-n)
+    g_degree = _reduction_g_degree(P)
+    g_length = binomial(g_degree+n, n)
 
     MS1 = matrix_space(coefficient_ring(parent(f)), g_length, g_length)
     m = Integer(modulus(base_ring(MS1)))
@@ -202,9 +206,9 @@ function reducetransform_varbyvar(
                 if (0 < params.verbose)
                     println("Reducing vector $i")
                     @time reduction =
-                        reducepoly_varbyvar(pol, S, f, fe, p, context, cache, params)
+                        reducepoly_varbyvar(pol, S, f, P, fe, p, context, cache, params)
                 else
-                    reduction = reducepoly_varbyvar(pol, S, f, fe, p, context, cache, params)
+                    reduction = reducepoly_varbyvar(pol, S, f, P, fe, p, context, cache, params)
                 end
                 result[i] = reduction
 
@@ -219,9 +223,9 @@ function reducetransform_varbyvar(
                 if (0 < params.verbose)
                     println("Reducing vector $i")
                     @time reduction =
-                        reducepoly_varbyvar(pol, S, f, fe, p, context, cache, params)
+                        reducepoly_varbyvar(pol, S, f, P, fe, p, context, cache, params)
                 else
-                    reduction = reducepoly_varbyvar(pol, S, f, fe, p, context, cache, params)
+                    reduction = reducepoly_varbyvar(pol, S, f, P, fe, p, context, cache, params)
                 end
                 result[i] = reduction
 
@@ -249,9 +253,9 @@ function reducetransform_varbyvar(
             pol = FT[i]
             if (0 < params.verbose)
                 println("Reducing vector $i")
-                @time reduction = reducepoly_varbyvar(pol, S, f, fe, p, context, cache, params)
+                @time reduction = reducepoly_varbyvar(pol, S, f, P, fe, p, context, cache, params)
             else
-                reduction = reducepoly_varbyvar(pol, S, f, fe, p, context, cache, params)
+                reduction = reducepoly_varbyvar(pol, S, f, P, fe, p, context, cache, params)
             end
             result[i] = reduction
         end

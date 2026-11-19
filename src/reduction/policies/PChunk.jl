@@ -1,8 +1,9 @@
 
 """
-    reducechain_pchunks(u,g,n,d,p,m,S,f,pseudoInverseMat,R,PR)
+    reducechain_pchunk(u, g, m, S, f, P, pseudoInverseMat, p, Ruv, cache, A, B, temp, g_temp, params)
 
-takes single monomial in frobenius and reduces to pole order n, currently only does one chunk of reduction
+takes a single monomial in Frobenius and reduces one chunk toward
+`terminal_pole_order(P)`.
 
 
 if the reduction hits the end, returns u as the "true" value, otherwise returns it in Costa's format
@@ -15,6 +16,7 @@ g - vector
 m - pole order
 S - vector of ints
 f - polynomial
+P - cohomology quotient
 pseudoInverseMat - output of pseudo_inverse_controlled_lifted
 p - prime number
 Ruv - output of computeRuvS
@@ -31,6 +33,7 @@ function reducechain_pchunk(
     m,
     S,
     f,
+    P,
     pseudoInverseMat,
     p,
     Ruv,
@@ -44,6 +47,8 @@ function reducechain_pchunk(
     verbose = params.verbose
     n = nvars(parent(f)) - 1
     d = total_degree(f)
+    g_degree = _reduction_g_degree(P)
+    terminal = terminal_pole_order(P)
     PR = parent(f)
     R = coefficient_ring(parent(f))
 
@@ -60,11 +65,11 @@ function reducechain_pchunk(
     V = rev_chooseV(Array{Int}(divexact.(u, p)), d, S)
     (4 < verbose) && println("LOOK! U=$u, V = $V")
 
-    gVec = u .- tweak(u, n*d-n)
+    gVec = u .- tweak(u, g_degree)
 
     @. u = u - gVec
-    if m - n < p
-        nend = m - n
+    if m - terminal < p
+        nend = m - terminal
     else
         nend = p
     end
@@ -72,7 +77,7 @@ function reducechain_pchunk(
     i = 1
 
     (4 < verbose) && println("Before reduction chunk, U is $u")
-    if 0 < nend-(d*n-n)
+    if 0 < nend-g_degree
         matrices = Ruv[V]#computeRuvS(V,S,f,pseudoInverseMat,Ruvs,cache,params)
 
         #TODO: the following was changed to use reverse! so
@@ -80,34 +85,34 @@ function reducechain_pchunk(
         #    this isn't our bottleneck. If it ever does
         #    become the bottleneck, fix the rest of this method
         #    so it doesn't allocate.
-        mins = u .- (nend-(d*n-n))*V
+        mins = u .- (nend-g_degree)*V
 
         B, A = eval_to_linear!(B, A, temp, matrices, mins, V)
 
         # TODO: test how much of a difference the fast evaluation actually makes
         if params.fastevaluation
-            gMat = finitediff_prodeval_linear!(B, A, 0, nend-(d*n-n)-1, gMat, temp, g_temp)
-            i = nend-(d*n-n) + 1
+            gMat = finitediff_prodeval_linear!(B, A, 0, nend-g_degree-1, gMat, temp, g_temp)
+            i = nend-g_degree + 1
         else
-            while i <= (nend-(d*n-n))
-                my_mul!(temp, B, nend-(d*n-n)-i)
+            while i <= (nend-g_degree)
+                my_mul!(temp, B, nend-g_degree-i)
                 my_add!(temp, temp, A)
                 gMat = temp*gMat
 
                 i = i+1
             end
         end
-        @. u = u - (nend-(d*n-n))*V
+        @. u = u - (nend-g_degree)*V
     end
     (4 < verbose) && println("After steps 1-$i, I is $I")
     i = i-1
     while i <= nend-1
-        y = tweak(J - i*V, d*n-n) .- tweak(J - (i+1)*V, d*n-n)
+        y = tweak(J - i*V, g_degree) .- tweak(J - (i+1)*V, g_degree)
         (4 < verbose) && println("Getting y direction reduction matrix for V = $(y)")
 
         matrices1 = Ruv[y]#computeRuvS(y,S,f,pseudoInverseMat,Ruvs,cache,params)
 
-        B, A = eval_to_linear!(B, A, temp, matrices1, tweak(J - (i+1)*V, d*n-n) - y, y)
+        B, A = eval_to_linear!(B, A, temp, matrices1, tweak(J - (i+1)*V, g_degree) - y, y)
 
         my_add!(temp, A, B)
         my_matvecmul!(g_temp, temp, gMat)
@@ -150,12 +155,13 @@ B - matrix
 temp - preallocated storage matrix
 params - the ControlledReductionParamaters
 """
-function reducepoly_pchunk(pol, S, f, pseudoInverseMat, p, Ruv, cache, A, B, temp, params)
+function reducepoly_pchunk(pol, S, f, P, pseudoInverseMat, p, Ruv, cache, A, B, temp, params)
     n = nvars(parent(f)) - 1
     d = total_degree(f)
     PR = parent(f)
     R = coefficient_ring(parent(f))
-    g_length = binomial(d*n, d*n-n)
+    g_length = binomial(_reduction_g_degree(P)+n, n)
+    terminal = terminal_pole_order(P)
 
     i = pol
     highpoleorder = i[length(i)][2]
@@ -165,14 +171,14 @@ function reducepoly_pchunk(pol, S, f, pseudoInverseMat, p, Ruv, cache, A, B, tem
     g_temp = zeros(UInt, g_length)
 
     poleorder = highpoleorder
-    while n <= poleorder
+    while terminal <= poleorder
         (9 < params.verbose) && println("pole order is $poleorder")
         # this is an array of polynomials
         costadatatemp = termsoforder(pol, poleorder)
 
         for term in costadatatemp
             g = zeros(UInt, g_length)
-            term_costadata = costadata_of_initial_term!(term, g, n, d, p, S, cache, params)
+            term_costadata = costadata_of_initial_term!(term, g, n, d, P, p, S, cache, params)
             incorporate_initial_term!(allcostadata, term_costadata)
         end
 
@@ -182,6 +188,7 @@ function reducepoly_pchunk(pol, S, f, pseudoInverseMat, p, Ruv, cache, A, B, tem
                 poleorder,
                 S,
                 f,
+                P,
                 pseudoInverseMat,
                 p,
                 Ruv,
@@ -197,7 +204,7 @@ function reducepoly_pchunk(pol, S, f, pseudoInverseMat, p, Ruv, cache, A, B, tem
         poleorder = poleorder - p
     end
 
-    return poly_of_end_costadatas(allcostadata, PR, p, d, n, S, params)
+    return poly_of_end_costadatas(allcostadata, PR, P, p, d, n, S, params)
 end
 
 """
@@ -216,14 +223,15 @@ p - prime number
 cache - the GradedExpCache used for this controlled reduction
 params - the ControlledReductionParamaters
 """
-function reducetransform_pchunk(FT, N_m, S, f, pseudoInverseMat, p, cache, params, fe)
+function reducetransform_pchunk(FT, N_m, S, f, P, pseudoInverseMat, p, cache, params, fe)
 
     d = total_degree(f)
     n = nvars(parent(f)) - 1
+    g_length = binomial(_reduction_g_degree(P)+n, n)
     MS1 = matrix_space(
         coefficient_ring(parent(f)),
-        binomial(d*n, d*n-n),
-        binomial(d*n, d*n-n),
+        g_length,
+        g_length,
     )
     A = MS1()
     B = MS1()
@@ -249,6 +257,7 @@ function reducetransform_pchunk(FT, N_m, S, f, pseudoInverseMat, p, cache, param
                 pol,
                 S,
                 f,
+                P,
                 pseudoInverseMat,
                 p,
                 Ruv,
@@ -263,6 +272,7 @@ function reducetransform_pchunk(FT, N_m, S, f, pseudoInverseMat, p, cache, param
                 pol,
                 S,
                 f,
+                P,
                 pseudoInverseMat,
                 p,
                 Ruv,

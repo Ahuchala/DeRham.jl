@@ -30,20 +30,14 @@ function zeta_coefficients_from_frobenius(
 end
 
 
+function _default_reduction_selection(fe::ZetaFrontend, S)
+    algorithm, selected_S, selected_variable, _ = varbyvar_reduction_setup(fe, S)
+    return algorithm, selected_S, selected_variable
+end
+
 function _default_reduction_selection(f, P, S)
-    n = P.n
-    if S == [n]
-        return :varbyvar, S, nothing
-    elseif n > 4
-        for i = 0:n
-            if is_Ssmooth(f, P, [n-i])
-                return :varbyvar, [n], i
-            elseif i == n
-                return :depthfirst, S, nothing
-            end
-        end
-    end
-    return :depthfirst, S, nothing
+    fe = ProjectiveHypersurface{typeof(f)}(f, P)
+    return _default_reduction_selection(fe, S)
 end
 
 """
@@ -182,7 +176,7 @@ function zeta_coefficients(
     end
 
     if algorithm == :default
-        algorithm, S, selected_variable = _default_reduction_selection(f, P, S)
+        algorithm, S, selected_variable = _default_reduction_selection(fe, S)
         if selected_variable !== nothing
             vars = gens(PR)
             new_vars = copy(vars)
@@ -195,8 +189,11 @@ function zeta_coefficients(
         end
     end
 
-    if algorithm==:varbyvar && (S != [n])
-        throw("S must be [$n] for varbyvar")
+    if algorithm == :varbyvar
+        _, _, _, required_S = varbyvar_reduction_setup(fe, S)
+        if S != required_S
+            throw("S must be $required_S for varbyvar")
+        end
     end
 
     # vars_reversed = false

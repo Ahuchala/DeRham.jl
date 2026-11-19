@@ -21,6 +21,18 @@
     @test selected_S == [5]
     @test selected_variable == 0
 
+    hypersurface = DeRham.ProjectiveHypersurface(cubic)
+    @test DeRham.varbyvar_reduction_setup(hypersurface, [2]) ==
+          (:varbyvar, [2], nothing, [2])
+    @test DeRham.varbyvar_reduction_setup(hypersurface, [0]) ==
+          (:depthfirst, [0], nothing, [2])
+
+    Rdc, (s, t) = polynomial_ring(GF(5), ["s", "t"])
+    double_cover = DeRham.DoubleCover(s^4 + t^4)
+    double_cover_terminal = DeRham.cohomology_quotient(double_cover).n
+    @test DeRham.varbyvar_reduction_setup(double_cover, [double_cover_terminal]) ==
+          (:depthfirst, [double_cover_terminal], nothing, [double_cover_terminal])
+
     cases = ((2, 3, [0]), (2, 3, [2]), (2, 3, [0, 1, 2]), (4, 3, [0]), (4, 4, [0]))
     moduli = (BigInt(5)^8, BigInt(2)^40, BigInt(2)^110)
 
