@@ -65,6 +65,9 @@ end
 
 reduction_engine_geometry(engine::MatrixReductionEngine) = engine.geometry
 
+_matrix_engine_vector(g::Vector{ZZRingElem}) = [ZZ(0) for _ in eachindex(g)]
+_matrix_engine_vector(g) = similar(g)
+
 function _matrix_chain_state(engine::MatrixReductionEngine, chain::ReductionChainHandle)
     state = get(engine.live, chain.identifier, nothing)
     state === nothing && throw(ArgumentError("the chain is not live in this engine"))
@@ -75,7 +78,7 @@ end
 function materialize(engine::MatrixReductionEngine, key::ReductionChainKey)
     key.order >= engine.geometry.terminal_order ||
         throw(ArgumentError("cannot materialize a chain below the terminal order"))
-    vector = similar(engine.context.g)
+    vector = _matrix_engine_vector(engine.context.g)
     engine.fill_vector!(vector, key)
     identifier = engine.next_identifier
     engine.next_identifier += 1
@@ -108,7 +111,7 @@ function reduce!(engine::MatrixReductionEngine, chain::ReductionChainHandle, v, 
     engine.directions(key.u, k, direction) ||
         throw(ArgumentError("the reduction direction is outside V_S(u, k)"))
 
-    U = collect(key.u) .- (k - 1) .* direction
+    U = collect(key.u) .- k .* direction
     matrices = engine.context.Ruvs[direction]
     engine.evaluation_kernel(
         engine.context.B,

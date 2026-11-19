@@ -49,7 +49,7 @@
         u, vector = DeRham.finish!(engine, only(survivors))
         @test u == (1,)
         value = only(Array(vector))
-        @test (value isa Integer ? value == 4 : Int(DeRham.lift(value)) == 4)
+        @test (value isa Integer ? value == 2 : Int(DeRham.lift(value)) == 2)
         @test isempty(engine.live)
     end
 end
