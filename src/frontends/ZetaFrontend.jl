@@ -125,7 +125,7 @@ Fill `g` with the summed contribution of the input terms belonging to `key`.
 function reduction_input_vector!(g, fe::ZetaFrontend, input, S, cache, params)
     P = cohomology_quotient(fe)
     reduction_degree = _reduction_g_degree(P)
-    basis = cache[reduction_degree]
+    basis_lookup = cache[reduction_degree, :reverse]
     Stilda = zeros(Int, P.n + 1)
     for i in S
         Stilda[i+1] = 1
@@ -135,7 +135,7 @@ function reduction_input_vector!(g, fe::ZetaFrontend, input, S, cache, params)
     for monomial in input.terms
         U = exponent_vector(monomial, 1) + Stilda
         exponent = U - input.key[1]
-        index = findfirst(==(exponent), basis)
+        index = get(basis_lookup, exponent, nothing)
         index === nothing && continue
         coefficient = coeff(monomial, 1)
         coefficients[index] = get(coefficients, index, zero(coefficient)) + coefficient
