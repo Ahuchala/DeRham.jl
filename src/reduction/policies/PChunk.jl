@@ -216,7 +216,7 @@ p - prime number
 cache - the GradedExpCache used for this controlled reduction
 params - the ControlledReductionParamaters
 """
-function reducetransform_pchunk(FT, N_m, S, f, pseudoInverseMat, p, cache, params)
+function reducetransform_pchunk(FT, N_m, S, f, pseudoInverseMat, p, cache, params, fe)
 
     d = total_degree(f)
     n = nvars(parent(f)) - 1
@@ -228,15 +228,14 @@ function reducetransform_pchunk(FT, N_m, S, f, pseudoInverseMat, p, cache, param
     A = MS1()
     B = MS1()
     temp = MS1()
-    if (3 < params.verbose)
-        computeRuv = V -> begin
+    ruv_function = reduction_ruv_function(fe, S, f, pseudoInverseMat, cache, params)
+    computeRuv = if 3 < params.verbose
+        V -> begin
             println("Computing Ruv for V = $V for the first time.")
-            @time computeRuvS(V, S, f, pseudoInverseMat, cache, params)
+            @time ruv_function(V)
         end
     else
-        computeRuv = V -> begin
-            computeRuvS(V, S, f, pseudoInverseMat, cache, params)
-        end
+        ruv_function
     end
     Ruv = LazyPEP{typeof(MS1())}(computeRuv)
 

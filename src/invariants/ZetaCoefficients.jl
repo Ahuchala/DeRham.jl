@@ -358,6 +358,7 @@ function zeta_coefficients(
         S,
         fLift,
         P,
+        fe,
         pseudo_inverse_mat,
         p,
         params,

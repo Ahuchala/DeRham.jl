@@ -121,8 +121,6 @@ function computeRuvS(V, S, f, P, pseudoInverseMat, cache, params)
 end
 
 function computeRuvS(V, S, f, pseudoInverseMat, cache, params)
-    n = nvars(parent(f)) - 1
-    d = total_degree(f)
-    P = HypersurfaceQuotient(n, d)
-    return computeRuvS(V, S, f, P, pseudoInverseMat, cache, params)
+    fe = ProjectiveHypersurface(f)
+    return reduction_ruv_function(fe, S, f, pseudoInverseMat, cache, params)(V)
 end

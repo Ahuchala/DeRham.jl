@@ -168,6 +168,7 @@ function reducetransform_varbyvar(
     cache,
     params,
     context,
+    fe,
 )
     d = total_degree(f)
     n = nvars(parent(f)) - 1
@@ -176,15 +177,14 @@ function reducetransform_varbyvar(
     MS1 = matrix_space(coefficient_ring(parent(f)), g_length, g_length)
     m = Integer(modulus(base_ring(MS1)))
 
-    if (3 < params.verbose)
-        computeRuv = V -> begin
+    ruv_function = reduction_ruv_function(fe, S, f, pseudoInverseMat, cache, params)
+    computeRuv = if 3 < params.verbose
+        V -> begin
             println("Computing Ruv for V = $V for the first time.")
-            @time computeRuvS(V, S, f, pseudoInverseMat, cache, params)
+            @time ruv_function(V)
         end
     else
-        computeRuv = V -> begin
-            computeRuvS(V, S, f, pseudoInverseMat, cache, params)
-        end
+        ruv_function
     end
 
     result = similar(FT)
