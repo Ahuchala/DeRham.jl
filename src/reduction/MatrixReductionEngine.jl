@@ -1,6 +1,6 @@
-mutable struct MatrixReductionChainState
+mutable struct MatrixReductionChainState{V}
     key::ReductionChainKey
-    vector::Any
+    vector::V
 end
 
 """
@@ -15,14 +15,14 @@ normalization.
 Keyword arguments:
 `evaluation_kernel = eval_to_linear!` and `fastevaluation = false`.
 """
-mutable struct MatrixReductionEngine{D,C,F,K} <: AbstractReductionEngine
+mutable struct MatrixReductionEngine{D,C,F,K,V} <: AbstractReductionEngine
     geometry::ReductionEngineGeometry
     directions::D
     context::C
     fill_vector!::F
     evaluation_kernel::K
     fastevaluation::Bool
-    live::Dict{Int,MatrixReductionChainState}
+    live::Dict{Int,MatrixReductionChainState{V}}
     next_identifier::Int
 end
 
@@ -34,7 +34,8 @@ function MatrixReductionEngine(
     evaluation_kernel = eval_to_linear!,
     fastevaluation = false,
 )
-    live = Dict{Int,MatrixReductionChainState}()
+    vector_type = typeof(_matrix_engine_vector(context.g))
+    live = Dict{Int,MatrixReductionChainState{vector_type}}()
     return MatrixReductionEngine(
         geometry,
         directions,
@@ -149,7 +150,10 @@ function reduce!(engine::MatrixReductionEngine, chain::ReductionChainHandle, v, 
         )
     else
         for i = 1:k
-            state.vector = (engine.context.A + engine.context.B * (k - i)) * state.vector
+            my_mul!(engine.context.temp, engine.context.B, k - i)
+            my_add!(engine.context.temp, engine.context.temp, engine.context.A)
+            my_matvecmul!(engine.context.g_temp, engine.context.temp, state.vector)
+            my_copy!(state.vector, engine.context.g_temp)
         end
     end
 

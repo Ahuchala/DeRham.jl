@@ -41,6 +41,8 @@
         engine = test_engine(fastevaluation)
         first = DeRham.materialize(engine, DeRham.ReductionChainKey([3], 3))
         second = DeRham.materialize(engine, DeRham.ReductionChainKey([3], 3))
+        state = @inferred DeRham._matrix_chain_state(engine, first)
+        @test fieldtype(typeof(state), :vector) === typeof(engine.context.g)
         chains = [first, second]
         @test first !== second
         @test DeRham.reduce_batched!(engine, chains, [[1], [1]], 2) === chains
