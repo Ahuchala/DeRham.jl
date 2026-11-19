@@ -18,9 +18,9 @@ function run_reduction_policy!(
     engine::AbstractReductionEngine,
     keys_by_order,
     directions::ReductionDirectionSet,
+    on_terminal,
 )
     terminal_order = reduction_engine_geometry(engine).terminal_order
-    terminal_chains = Any[]
 
     for (_, inputs) in keys_by_order
         for input in inputs
@@ -41,11 +41,11 @@ function run_reduction_policy!(
                 reduce!(engine, chain, direction, chunk)
                 key = reduction_chain_key(engine, chain)
             end
-            push!(terminal_chains, finish!(engine, chain))
+            on_terminal(finish!(engine, chain))
         end
     end
 
-    return terminal_chains
+    return nothing
 end
 
 public DepthFirstPolicy

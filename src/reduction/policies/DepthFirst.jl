@@ -36,9 +36,18 @@ function _reducepoly_depthfirst!(
     directions,
 )
     keys_by_order = reduction_input_keys(fe, pol, S)
-    terminal_chains =
-        run_reduction_policy!(policy, runtime.engine, keys_by_order, directions)
-    return reduction_terminal_polynomial(fe, terminal_chains, PR, S, params)
+    terminal_polynomial = Ref(PR())
+    on_terminal = chain -> begin
+        terminal_polynomial[] = reduction_add_terminal_chain(
+            fe,
+            terminal_polynomial[],
+            chain,
+            PR,
+            params,
+        )
+    end
+    run_reduction_policy!(policy, runtime.engine, keys_by_order, directions, on_terminal)
+    return _finish_reduction_terminal_polynomial(fe, terminal_polynomial[], PR, S)
 end
 
 function reducetransform_depthfirst(

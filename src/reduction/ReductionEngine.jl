@@ -158,14 +158,15 @@ a polynomial.
 function finish! end
 
 """
-    run_reduction_policy!(policy, engine, keys_by_order, directions)
+    run_reduction_policy!(policy, engine, keys_by_order, directions, on_terminal)
 
 Run `policy` against `engine` using frontend input records grouped by order and
 the frontend's `V_S` direction predicate. The policy passes each input record
 to the engine when materializing its chain, then chooses directions and chunk
 lengths through the engine interface. It does not inspect input records,
-matrices, vectors, representations, or device placement.
-Implementations return the finished terminal chains.
+matrices, vectors, representations, or device placement. Each finished chain
+is passed to `on_terminal` immediately after the engine finishes it, and
+implementations do not retain terminal chains.
 """
 function run_reduction_policy! end
 
