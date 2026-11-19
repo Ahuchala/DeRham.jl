@@ -118,14 +118,16 @@ function zeta_coefficients(
     series_precision = nothing,
     algorithm_precision = nothing,
 )
+    if !_supports_reduction_algorithm(fe, algorithm)
+        throw(
+            ArgumentError(
+                "algorithm $algorithm is not yet supported for $(typeof(fe))",
+            ),
+        )
+    end
+
     if !(fe isa ProjectiveHypersurface)
-        if !_supports_reduction_algorithm(fe, algorithm)
-            throw(
-                ArgumentError(
-                    "algorithm $algorithm is not yet supported for $(typeof(fe))",
-                ),
-            )
-        elseif use_gpu
+        if use_gpu
             throw(ArgumentError("GPU execution is not yet supported for $(typeof(fe))"))
         elseif context !== nothing
             throw(

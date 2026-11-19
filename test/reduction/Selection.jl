@@ -29,6 +29,19 @@
     @test selected_variable === nothing
 
     hypersurface = DeRham.ProjectiveHypersurface(cubic)
+    unsupported_algorithm_error = try
+        DeRham.zeta_coefficients(hypersurface; algorithm = :unsupported)
+        nothing
+    catch err
+        err
+    end
+    @test unsupported_algorithm_error isa ArgumentError
+    if unsupported_algorithm_error isa ArgumentError
+        @test occursin(
+            "not yet supported for",
+            sprint(showerror, unsupported_algorithm_error),
+        )
+    end
     @test DeRham.varbyvar_reduction_setup(hypersurface, [2]) ==
           (:varbyvar, [2], nothing, [2])
     @test DeRham.varbyvar_reduction_setup(hypersurface, [0]) ==
