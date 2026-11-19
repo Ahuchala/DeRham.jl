@@ -56,6 +56,7 @@ function run_de_rham_full_test_suite!()
             include(joinpath($test_dir, "reduction/FrontendMethods.jl"))
             include(joinpath($test_dir, "reduction/EngineInterfaces.jl"))
             include(joinpath($test_dir, "reduction/AccountingEngine.jl"))
+            include(joinpath($test_dir, "reduction/MatrixEngine.jl"))
             include(joinpath($test_dir, "graded_ring/GradedExpCache.jl"))
 
             include(joinpath($test_dir, "e2e/test/runtests.jl"))

@@ -58,9 +58,10 @@ abstract type AbstractReductionChainHandle end
 """
     ReductionChainHandle(key, identifier)
 
-A generic chain handle containing its immutable key and an engine-owned
-identifier. Engines may use their own subtypes of `AbstractReductionChainHandle`
-when a different handle representation is useful.
+A generic chain handle containing its current key and an engine-owned
+identifier. `reduce!` updates the key as the chain moves. Engines may use their
+own subtypes of `AbstractReductionChainHandle` when a different handle
+representation is useful.
 """
 mutable struct ReductionChainHandle{K<:ReductionChainKey,I} <: AbstractReductionChainHandle
     key::K
@@ -100,7 +101,7 @@ function materialize end
     reduce!(engine, chain, v, k)
 
 Apply a reduction chunk of length `k` in direction `v` to `chain`, preserving
-the prescaled normalization used by the frontend.
+the prescaled normalization used by the frontend, and update the handle's key.
 """
 function reduce! end
 
@@ -112,6 +113,16 @@ corresponding direction in `directions`. Version one may implement this as a
 loop over `reduce!`.
 """
 function reduce_batched! end
+
+function reduce_batched!(engine::AbstractReductionEngine, chains, directions, k::Integer)
+    k >= 1 || throw(ArgumentError("a reduction chunk must have positive length"))
+    length(chains) == length(directions) ||
+        throw(ArgumentError("each batched chain must have one direction"))
+    for (chain, direction) in zip(chains, directions)
+        reduce!(engine, chain, direction, k)
+    end
+    return chains
+end
 
 """
     combine!(engine, order)
