@@ -133,26 +133,22 @@ end
 
 function reducepoly_depthfirst(pol, S, f, P, fe, p, context, cache, params)
     PR = parent(f)
-    terminal_chains = []
-    for (_, inputs) in reduction_input_keys(fe, pol, S)
+    terminal_chains = (
+        reducechain_depthfirst(
+            input.key[1],
+            reduction_input_vector!(context.g, fe, input, S, cache, params),
+            input.key[2],
+            S,
+            f,
+            P,
+            p,
+            context,
+            cache,
+            params,
+        )
+        for (_, inputs) in reduction_input_keys(fe, pol, S)
         for input in inputs
-            u, order = input.key
-            g = reduction_input_vector!(context.g, fe, input, S, cache, params)
-            reduced = reducechain_depthfirst(
-                u,
-                g,
-                order,
-                S,
-                f,
-                P,
-                p,
-                context,
-                cache,
-                params,
-            )
-            push!(terminal_chains, (reduced[1], _copy_reduction_vector(reduced[2])))
-        end
-    end
+    )
     return reduction_terminal_polynomial(fe, terminal_chains, PR, S, params)
 end
 

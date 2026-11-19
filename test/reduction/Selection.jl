@@ -21,6 +21,13 @@
     @test selected_S == [5]
     @test selected_variable == 0
 
+    singular_quadric = variables[1]^2
+    algorithm, selected_S, selected_variable =
+        DeRham._default_reduction_selection(singular_quadric, P5, [0, 1])
+    @test algorithm == :depthfirst
+    @test selected_S == [0, 1]
+    @test selected_variable === nothing
+
     hypersurface = DeRham.ProjectiveHypersurface(cubic)
     @test DeRham.varbyvar_reduction_setup(hypersurface, [2]) ==
           (:varbyvar, [2], nothing, [2])
@@ -30,6 +37,9 @@
     Rdc, (s, t) = polynomial_ring(GF(5), ["s", "t"])
     double_cover = DeRham.DoubleCover(s^4 + t^4)
     double_cover_terminal = DeRham.cohomology_quotient(double_cover).n
+    @test DeRham._supports_reduction_algorithm(hypersurface, :varbyvar)
+    @test DeRham._supports_reduction_algorithm(double_cover, :varbyvar)
+    @test !DeRham._supports_reduction_algorithm(double_cover, :pchunk)
     @test DeRham.varbyvar_reduction_setup(double_cover, [double_cover_terminal]) ==
           (:depthfirst, [double_cover_terminal], nothing, [double_cover_terminal])
 

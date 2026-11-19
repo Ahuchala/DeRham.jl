@@ -119,8 +119,7 @@ function zeta_coefficients(
     algorithm_precision = nothing,
 )
     if !(fe isa ProjectiveHypersurface)
-        if algorithm in (:pchunk, :akr) ||
-           (algorithm == :varbyvar && !(fe isa DoubleCover))
+        if !_supports_reduction_algorithm(fe, algorithm)
             throw(
                 ArgumentError(
                     "algorithm $algorithm is not yet supported for $(typeof(fe))",

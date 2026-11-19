@@ -5,6 +5,7 @@ function cohomology_quotient end
 function weight end
 function check_input end
 function reduction_prescale end
+function _supports_reduction_algorithm end
 function reduction_ruv_function end
 function reduction_directions end
 function varbyvar_reduction_setup end
@@ -22,6 +23,9 @@ function reduction_prescale(P::CohomologyQuotient, m::Integer)
     end
     return scale
 end
+
+_supports_reduction_algorithm(::ZetaFrontend, algorithm) =
+    algorithm in (:default, :depthfirst)
 
 """
     reduction_ruv_function(fe, S, f, pseudoInverseMat, cache, params)
@@ -150,7 +154,7 @@ end
     reduction_terminal_polynomial(fe, chains, PR, S, params)
 
 Convert terminal reduction chains to the polynomial output expected by the
-final reduction stage.
+final reduction stage. The chain iterator is consumed once and may be lazy.
 """
 function reduction_terminal_polynomial(fe::ZetaFrontend, chains, PR, S, params)
     P = cohomology_quotient(fe)
