@@ -123,15 +123,5 @@ function reducetransform(FT, N_m, S, f, pseudoInverseMat, p, params, cache, cont
 end
 
 function reducetransform(FT, N_m, S, f, pseudoInverseMat, p, params, cache)
-    return reducetransform(
-        FT,
-        N_m,
-        S,
-        f,
-        pseudoInverseMat,
-        p,
-        params,
-        cache,
-        nothing,
-    )
+    return reducetransform(FT, N_m, S, f, pseudoInverseMat, p, params, cache, nothing)
 end

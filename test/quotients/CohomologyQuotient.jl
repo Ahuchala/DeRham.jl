@@ -14,10 +14,8 @@
 
     hypersurface = DeRham.HypersurfaceQuotient(1, 3)
     double_cover = DeRham.DoubleCoverQuotient(1, 4)
-    @test [DeRham.reduction_prescale(hypersurface, m) for m = 1:6] ==
-          [factorial(ZZ(m - 1)) for m = 1:6]
-    @test [DeRham.reduction_prescale(double_cover, m) for m = 1:6] ==
-          [QQ(1), QQ(1, 2), QQ(3, 4), QQ(15, 8), QQ(105, 16), QQ(945, 32)]
+    @test [DeRham.reduction_prescale(hypersurface, m) for m = 1:6] == [factorial(ZZ(m - 1)) for m = 1:6]
+    @test [DeRham.reduction_prescale(double_cover, m) for m = 1:6] == [QQ(1), QQ(1, 2), QQ(3, 4), QQ(15, 8), QQ(105, 16), QQ(945, 32)]
 
     @test_throws ArgumentError DeRham.DoubleCoverQuotient(2, 3)
 

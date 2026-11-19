@@ -44,8 +44,7 @@ function varbyvar_reduction_setup(fe::ProjectiveHypersurface, S)
     return :depthfirst, S, nothing, required_S
 end
 
-reduction_prescale(fe::ProjectiveHypersurface, m::Integer) =
-    reduction_prescale(fe.P, m)
+reduction_prescale(fe::ProjectiveHypersurface, m::Integer) = reduction_prescale(fe.P, m)
 
 frobenius_series(::ProjectiveHypersurface, N, m) = computeD(N, m)
 

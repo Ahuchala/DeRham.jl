@@ -203,11 +203,8 @@ end
         end
 
         if id == "g1_d4_a"
-            default_result = DeRham.zeta_coefficients(
-                fe;
-                series_precision = N,
-                algorithm_precision = M,
-            )
+            default_result =
+                DeRham.zeta_coefficients(fe; series_precision = N, algorithm_precision = M)
             @test default_result == depthfirst_result
         end
     end

@@ -208,7 +208,8 @@ function reducetransform_varbyvar(
                     @time reduction =
                         reducepoly_varbyvar(pol, S, f, P, fe, p, context, cache, params)
                 else
-                    reduction = reducepoly_varbyvar(pol, S, f, P, fe, p, context, cache, params)
+                    reduction =
+                        reducepoly_varbyvar(pol, S, f, P, fe, p, context, cache, params)
                 end
                 result[i] = reduction
 
@@ -225,7 +226,8 @@ function reducetransform_varbyvar(
                     @time reduction =
                         reducepoly_varbyvar(pol, S, f, P, fe, p, context, cache, params)
                 else
-                    reduction = reducepoly_varbyvar(pol, S, f, P, fe, p, context, cache, params)
+                    reduction =
+                        reducepoly_varbyvar(pol, S, f, P, fe, p, context, cache, params)
                 end
                 result[i] = reduction
 
@@ -253,7 +255,8 @@ function reducetransform_varbyvar(
             pol = FT[i]
             if (0 < params.verbose)
                 println("Reducing vector $i")
-                @time reduction = reducepoly_varbyvar(pol, S, f, P, fe, p, context, cache, params)
+                @time reduction =
+                    reducepoly_varbyvar(pol, S, f, P, fe, p, context, cache, params)
             else
                 reduction = reducepoly_varbyvar(pol, S, f, P, fe, p, context, cache, params)
             end

@@ -119,11 +119,7 @@ function zeta_coefficients(
     algorithm_precision = nothing,
 )
     if !_supports_reduction_algorithm(fe, algorithm)
-        throw(
-            ArgumentError(
-                "algorithm $algorithm is not yet supported for $(typeof(fe))",
-            ),
-        )
+        throw(ArgumentError("algorithm $algorithm is not yet supported for $(typeof(fe))"))
     end
 
     if !(fe isa ProjectiveHypersurface)

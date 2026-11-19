@@ -145,9 +145,7 @@ function reducepoly_depthfirst(pol, S, f, P, fe, p, context, cache, params)
             context,
             cache,
             params,
-        )
-        for (_, inputs) in reduction_input_keys(fe, pol, S)
-        for input in inputs
+        ) for (_, inputs) in reduction_input_keys(fe, pol, S) for input in inputs
     )
     return reduction_terminal_polynomial(fe, terminal_chains, PR, S, params)
 end
@@ -264,7 +262,8 @@ function reducetransform_depthfirst(
                 @time reduction =
                     reducepoly_depthfirst(pol, S, f, P, fe, p, context, cache, params)
             else
-                reduction = reducepoly_depthfirst(pol, S, f, P, fe, p, context, cache, params)
+                reduction =
+                    reducepoly_depthfirst(pol, S, f, P, fe, p, context, cache, params)
             end
             result[i] = reduction
         end

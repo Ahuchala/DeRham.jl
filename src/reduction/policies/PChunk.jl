@@ -155,7 +155,20 @@ B - matrix
 temp - preallocated storage matrix
 params - the ControlledReductionParamaters
 """
-function reducepoly_pchunk(pol, S, f, P, pseudoInverseMat, p, Ruv, cache, A, B, temp, params)
+function reducepoly_pchunk(
+    pol,
+    S,
+    f,
+    P,
+    pseudoInverseMat,
+    p,
+    Ruv,
+    cache,
+    A,
+    B,
+    temp,
+    params,
+)
     n = nvars(parent(f)) - 1
     d = total_degree(f)
     PR = parent(f)
@@ -178,7 +191,8 @@ function reducepoly_pchunk(pol, S, f, P, pseudoInverseMat, p, Ruv, cache, A, B, 
 
         for term in costadatatemp
             g = zeros(UInt, g_length)
-            term_costadata = costadata_of_initial_term!(term, g, n, d, P, p, S, cache, params)
+            term_costadata =
+                costadata_of_initial_term!(term, g, n, d, P, p, S, cache, params)
             incorporate_initial_term!(allcostadata, term_costadata)
         end
 
@@ -228,11 +242,7 @@ function reducetransform_pchunk(FT, N_m, S, f, P, pseudoInverseMat, p, cache, pa
     d = total_degree(f)
     n = nvars(parent(f)) - 1
     g_length = binomial(_reduction_g_degree(P)+n, n)
-    MS1 = matrix_space(
-        coefficient_ring(parent(f)),
-        g_length,
-        g_length,
-    )
+    MS1 = matrix_space(coefficient_ring(parent(f)), g_length, g_length)
     A = MS1()
     B = MS1()
     temp = MS1()

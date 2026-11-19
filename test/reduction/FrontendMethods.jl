@@ -40,11 +40,8 @@ end
         @test contains_direction(u, k, V)
     end
 
-    varbyvar_cases = (
-        (curve, [1], [1, 4]),
-        (surface, [2], [1, 1, 4]),
-        (fourfold, [4], [1, 1, 1, 1, 3]),
-    )
+    varbyvar_cases =
+        ((curve, [1], [1, 4]), (surface, [2], [1, 1, 4]), (fourfold, [4], [1, 1, 1, 1, 3]))
     for (fe, S, u) in varbyvar_cases
         P = DeRham.cohomology_quotient(fe)
         contains_direction = DeRham.reduction_directions(fe, S)
@@ -63,8 +60,7 @@ end
     fe = DeRham.ProjectiveHypersurface(x^3 + y^3 + z^3)
     P = DeRham.cohomology_quotient(fe)
     precision_ring, = residue_ring(ZZ, 25)
-    Rlift, (x_lift, y_lift, z_lift) =
-        polynomial_ring(precision_ring, ["x", "y", "z"])
+    Rlift, (x_lift, y_lift, z_lift) = polynomial_ring(precision_ring, ["x", "y", "z"])
     S = [0, 1, 2]
     params = DeRham.ZetaFunctionParams(
         0,
@@ -96,21 +92,17 @@ end
     @test g == expected
     @test count(x -> !iszero(x), g) == 2
 
-    hypersurface_output = [
-        [x^3 * z^2, 5],
-        [y^3 * z^2, 10],
-        [z^5, 15],
-    ]
-    hypersurface_orders = [
-        group[1] for group in DeRham.reduction_input_keys(fe, hypersurface_output, S)
-    ]
+    hypersurface_output = [[x^3 * z^2, 5], [y^3 * z^2, 10], [z^5, 15]]
+    hypersurface_orders =
+        [group[1] for group in DeRham.reduction_input_keys(fe, hypersurface_output, S)]
     @test sort(hypersurface_orders) == sort(collect(15:-5:5))
 
     Rdouble, (s, t) = polynomial_ring(GF(5), ["s", "t"])
     double_cover = DeRham.DoubleCover(s^4 + t^4)
     double_cover_output = [[s^4, 3], [t^4, 8], [s^4, 13]]
     double_cover_orders = [
-        group[1] for group in DeRham.reduction_input_keys(double_cover, double_cover_output, [1])
+        group[1] for
+        group in DeRham.reduction_input_keys(double_cover, double_cover_output, [1])
     ]
     @test double_cover_orders == [3, 8, 13]
     @test 3 in double_cover_orders
