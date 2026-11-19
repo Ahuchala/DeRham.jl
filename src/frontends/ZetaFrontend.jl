@@ -6,6 +6,7 @@ function weight end
 function check_input end
 function reduction_prescale end
 function _supports_reduction_algorithm end
+function _reduction_allowed_policies end
 function reduction_ruv_function end
 function reduction_directions end
 function varbyvar_reduction_setup end
@@ -24,8 +25,10 @@ function reduction_prescale(P::CohomologyQuotient, m::Integer)
     return scale
 end
 
-_supports_reduction_algorithm(::ZetaFrontend, algorithm) =
-    algorithm in (:default, :depthfirst)
+_reduction_allowed_policies(::ZetaFrontend) = (:depthfirst,)
+
+_supports_reduction_algorithm(fe::ZetaFrontend, algorithm) =
+    algorithm in (:default, _reduction_allowed_policies(fe)...)
 
 """
     reduction_ruv_function(fe, S, f, pseudoInverseMat, cache, params)

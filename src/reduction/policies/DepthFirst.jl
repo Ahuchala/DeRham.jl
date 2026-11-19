@@ -162,47 +162,26 @@ function reducetransform_depthfirst(
     cache,
     params,
     context,
+    configuration,
 )
-    d = total_degree(f)
-    n = nvars(parent(f)) - 1
-    g = _reduction_g_degree(P)
-    g_length = binomial(g+n, n)
-
-    MS1 = matrix_space(coefficient_ring(parent(f)), g_length, g_length)
-    m = Integer(modulus(base_ring(MS1)))
-
-    ruv_function = reduction_ruv_function(fe, S, f, pseudoInverseMat, cache, params)
-    computeRuv = if 3 < params.verbose
-        V -> begin
-            println("Computing Ruv for V = $V for the first time.")
-            @time ruv_function(V)
-        end
-    else
-        ruv_function
-    end
-
+    setup = reduction_execution_setup(
+        configuration,
+        fe,
+        f,
+        P,
+        pseudoInverseMat,
+        p,
+        cache,
+        params,
+        context,
+    )
+    Ruv = setup.Ruv
     result = similar(FT)
 
-    if context == nothing
-        #TODO: right now, it usually seems better to do lazy computations,
-        #  since not all of the Ruv are used. However, I know that for some
-        #  classes of examples, they are all pretty much always used. For
-        #  such examples, it's better to use an EagerPEP and do threads.
-        lazy_Ruv = length(S) < d || d < n
-
-        if (0 < params.verbose)
-            println("Creating the Ruv PEP object...")
-            @time Ruv = select_Ruv_PEP(n, d, S, params, computeRuv, lazy_Ruv, MS1, cache)
-        else
-            Ruv = select_Ruv_PEP(n, d, S, params, computeRuv, lazy_Ruv, MS1, cache)
-        end
-
-
-        if params.use_threads
-
-            context_tlv = OhMyThreads.TaskLocalValue{default_context_type(MS1, params)}(
-                () -> default_context(MS1, Ruv, params),
-            )
+    if !setup.context_provided
+        if setup.threads
+            context_tlv =
+                OhMyThreads.TaskLocalValue{setup.context_type}(setup.context_factory)
 
             Threads.@threads for i = 1:length(FT)
                 local context = context_tlv[]
@@ -220,7 +199,7 @@ function reducetransform_depthfirst(
 
             end
         else
-            context = default_context(MS1, Ruv, params)
+            context = setup.context_factory()
             for i = 1:length(FT) #pol in FT
 
                 pol = FT[i]
@@ -237,21 +216,7 @@ function reducetransform_depthfirst(
             end
         end
     else
-        if (ZZ(2)^25 < m < ZZ(2)^106)
-            compute_gpu = V -> KaratsubaMat.(computeRuv(V))
-        else
-            compute_gpu = V -> cuMod.(computeRuv(V))
-        end
-
-        compute_float = V -> float_entries.(computeRuv(V))
-
-        if 3 < n && d == 3 && S == [n] && params.use_gpu
-            context.Ruvs.backing.compute = compute_float
-        elseif params.use_gpu
-            context.Ruvs.compute = compute_gpu
-        else
-            context.Ruvs.compute = computeRuv
-        end
+        context = setup.context_factory()
 
         for i = 1:length(FT) #pol in FT
 
@@ -270,7 +235,7 @@ function reducetransform_depthfirst(
     end
 
     (0 < params.verbose) && begin
-        println("Created $(length(allpoints(Ruv))) of $(length(cache[d])) possible V")
+        println("Created $(length(allpoints(Ruv))) of $(length(cache[P.d])) possible V")
     end
     (1 < params.verbose) && begin
         println("V that were created: \n$(allpoints(Ruv))")
