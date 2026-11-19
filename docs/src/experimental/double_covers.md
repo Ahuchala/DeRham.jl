@@ -14,8 +14,11 @@ characteristic, and a smooth branch polynomial over $\mathbb{F}_p$.
 The double-cover computation requires explicit `series_precision` and
 `algorithm_precision` values. `relative_precision` is optional and defaults to
 the existing Weil-bound formula. These precision choices are not certified:
-there is no precision proof for this frontend yet. Only the depth-first CPU
-algorithm is supported.
+there is no precision proof for this frontend yet. The depth-first CPU
+algorithm is used by default. The VarByVar algorithm is also supported when
+requested explicitly with `S=[n]`, where `n` is the dimension of the base
+projective space. Both supported algorithms run on the CPU; GPU execution and
+custom reduction contexts are not supported.
 
 Each precision may be given as a scalar for all pieces or, where supported, as
 a vector. `relative_precision` vectors have one entry per Hodge polygon piece

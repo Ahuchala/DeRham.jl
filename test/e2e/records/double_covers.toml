@@ -8,6 +8,15 @@ p = 3
 parameters = { algorithm = "depthfirst", series_precision = 2, algorithm_precision = 5 }
 
 [[test]]
+name = "double_cover_hyperelliptic_g1_p3_varbyvar"
+type = "zeta_coefficients"
+tags = []
+runtime = 0.196
+example = "g1_d4_a"
+p = 3
+parameters = { algorithm = "varbyvar", changef = false, S = [1], series_precision = 2, algorithm_precision = 5 }
+
+[[test]]
 name = "double_cover_P2_sextic_sparse_p5"
 type = "zeta_coefficients"
 tags = ["sextic_k3"]

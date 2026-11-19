@@ -62,7 +62,8 @@ Keyword arguments:
 - `givefrobmat=false`: if true, returns `(F, coeffs)`, the Frobenius matrix
   and the coefficient vector, instead of just the coefficient vector.
 - `algorithm=:default`: selects the controlled-reduction algorithm; `:default`
-  chooses automatically.
+  chooses automatically. Double covers default to `:depthfirst` and also
+  support explicit CPU execution with `:varbyvar` and `S=[n]`.
 - `relative_precision`, `series_precision`, and `algorithm_precision`: explicit,
   uncertified precision inputs for non-hypersurface frontends. Hypersurface
   frontends reject these keywords. ``DoubleCover`` requires `series_precision`
@@ -118,7 +119,8 @@ function zeta_coefficients(
     algorithm_precision = nothing,
 )
     if !(fe isa ProjectiveHypersurface)
-        if algorithm in (:pchunk, :varbyvar, :akr)
+        if algorithm in (:pchunk, :akr) ||
+           (algorithm == :varbyvar && !(fe isa DoubleCover))
             throw(
                 ArgumentError(
                     "algorithm $algorithm is not yet supported for $(typeof(fe))",
@@ -132,9 +134,6 @@ function zeta_coefficients(
                     "custom reduction contexts are not yet supported for $(typeof(fe))",
                 ),
             )
-        end
-        if algorithm == :default
-            algorithm = :depthfirst
         end
     end
 
