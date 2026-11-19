@@ -91,31 +91,25 @@ function reducechain_varbyvar(u, g, m, S, f, p, context, cache, params)
     return ((J, gMat), m)
 end
 
-function reducepoly_varbyvar(pol, S, f, p, context, cache, params)
+function reducepoly_varbyvar(pol, S, f, fe, p, context, cache, params)
     n = nvars(parent(f)) - 1
-    d = total_degree(f)
     PR = parent(f)
-    R = coefficient_ring(parent(f))
-    result = PR()
-
-    i = pol
-    highpoleorder = i[length(i)][2]
-    terms = []
-    while highpoleorder >= p
-        append!(terms, termsoforder(pol, highpoleorder))
-        highpoleorder = highpoleorder - p
-    end
 
     vectype = typeof(context.g)
     allcostadata = Vector{Tuple{Tuple{Vector{Int},vectype},Int}}()
-    for term in terms
-        #g = my_copy(context.g)
-        term_costadata =
-            costadata_of_initial_term!(term, my_copy(context.g), n, d, p, S, cache, params)
-        append!(
-            allcostadata,
-            [((tweak(term_costadata[1], n*d-n), term_costadata[2]), term[2])],
-        )
+    for (_, inputs) in reduction_input_keys(fe, pol, S)
+        for input in inputs
+            u, order = input.key
+            g = reduction_input_vector!(
+                _zero_reduction_vector(context.g),
+                fe,
+                input,
+                S,
+                cache,
+                params,
+            )
+            push!(allcostadata, ((u, g), order))
+        end
     end
 
     notallred = true
@@ -147,15 +141,8 @@ function reducepoly_varbyvar(pol, S, f, p, context, cache, params)
             end
         end
     end
-    result = PR()
-    for i in eachindex(allcostadata)
-        (reduced_poly, m) = poly_of_end_costadata(allcostadata[i][1], PR, p, d, n, params)
-        result += reduced_poly
-    end
-
-    vars = gens(PR)
-    XS = prod(PR(vars[i+1]) for i in S; init = PR(1))
-    [[div(result, XS), n]]
+    terminal_chains = [entry[1] for entry in allcostadata]
+    return reduction_terminal_polynomial(fe, terminal_chains, PR, S, params)
 end
 
 function reducetransform_varbyvar(
@@ -215,9 +202,9 @@ function reducetransform_varbyvar(
                 if (0 < params.verbose)
                     println("Reducing vector $i")
                     @time reduction =
-                        reducepoly_varbyvar(pol, S, f, p, context, cache, params)
+                        reducepoly_varbyvar(pol, S, f, fe, p, context, cache, params)
                 else
-                    reduction = reducepoly_varbyvar(pol, S, f, p, context, cache, params)
+                    reduction = reducepoly_varbyvar(pol, S, f, fe, p, context, cache, params)
                 end
                 result[i] = reduction
 
@@ -232,9 +219,9 @@ function reducetransform_varbyvar(
                 if (0 < params.verbose)
                     println("Reducing vector $i")
                     @time reduction =
-                        reducepoly_varbyvar(pol, S, f, p, context, cache, params)
+                        reducepoly_varbyvar(pol, S, f, fe, p, context, cache, params)
                 else
-                    reduction = reducepoly_varbyvar(pol, S, f, p, context, cache, params)
+                    reduction = reducepoly_varbyvar(pol, S, f, fe, p, context, cache, params)
                 end
                 result[i] = reduction
 
@@ -262,9 +249,9 @@ function reducetransform_varbyvar(
             pol = FT[i]
             if (0 < params.verbose)
                 println("Reducing vector $i")
-                @time reduction = reducepoly_varbyvar(pol, S, f, p, context, cache, params)
+                @time reduction = reducepoly_varbyvar(pol, S, f, fe, p, context, cache, params)
             else
-                reduction = reducepoly_varbyvar(pol, S, f, p, context, cache, params)
+                reduction = reducepoly_varbyvar(pol, S, f, fe, p, context, cache, params)
             end
             result[i] = reduction
         end

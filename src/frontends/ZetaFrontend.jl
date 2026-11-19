@@ -7,6 +7,9 @@ function check_input end
 function reduction_prescale end
 function reduction_ruv_function end
 function reduction_directions end
+function reduction_input_keys end
+function reduction_input_vector! end
+function reduction_terminal_polynomial end
 function frobenius_series end
 function frobenius_term_pole_order end
 
@@ -47,4 +50,113 @@ function reduction_directions(fe::ZetaFrontend, S)
         all(i -> u[i] - k * v[i] >= 0, eachindex(u)) || return false
         all(i -> 0 <= i <= P.n && (u[i+1] == 0 || v[i+1] != 0), S)
     end
+end
+
+"""
+    reduction_input_keys(fe, frobenius_output, S)
+
+Return the distinct `(u, order)` chain keys with their input terms, grouped by
+pole order. The exponent vector `u` is shifted by `x^S` and tweaked to the
+reduction degree.
+"""
+function reduction_input_keys(fe::ZetaFrontend, frobenius_output, S)
+    P = cohomology_quotient(fe)
+    reduction_degree = _reduction_g_degree(P)
+    Stilda = zeros(Int, P.n + 1)
+    for i in S
+        Stilda[i+1] = 1
+    end
+
+    groups = Tuple{Int,Vector{Any}}[]
+    group_indices = Dict{Int,Int}()
+    key_indices = Dict{Any,Tuple{Int,Int}}()
+    for pol in frobenius_output
+        order = Int(pol[2])
+        for monomial in terms(pol[1])
+            U = exponent_vector(monomial, 1) + Stilda
+            u = tweak(U, reduction_degree)
+            key = (order, Tuple(u))
+            location = get(key_indices, key, nothing)
+            if location === nothing
+                group_index = get(group_indices, order, 0)
+                if group_index == 0
+                    push!(groups, (order, Any[]))
+                    group_index = length(groups)
+                    group_indices[order] = group_index
+                end
+                push!(groups[group_index][2], (key = (u, order), terms = [monomial]))
+                key_indices[key] = (group_index, length(groups[group_index][2]))
+            else
+                group_index, entry_index = location
+                push!(groups[group_index][2][entry_index].terms, monomial)
+            end
+        end
+    end
+    return groups
+end
+
+function _zero_reduction_vector(g::Vector{ZZRingElem})
+    return [ZZ(0) for _ in eachindex(g)]
+end
+
+function _zero_reduction_vector(g)
+    result = similar(g)
+    my_zero!(result)
+    return result
+end
+
+function _copy_reduction_vector(g)
+    result = _zero_reduction_vector(g)
+    my_copy!(result, g)
+    return result
+end
+
+"""
+    reduction_input_vector!(g, fe, key, S, cache, params)
+
+Fill `g` with the summed contribution of the input terms belonging to `key`.
+"""
+function reduction_input_vector!(g, fe::ZetaFrontend, input, S, cache, params)
+    P = cohomology_quotient(fe)
+    reduction_degree = _reduction_g_degree(P)
+    basis = cache[reduction_degree]
+    Stilda = zeros(Int, P.n + 1)
+    for i in S
+        Stilda[i+1] = 1
+    end
+    my_zero!(g)
+    coefficients = Dict{Int,Any}()
+    for monomial in input.terms
+        U = exponent_vector(monomial, 1) + Stilda
+        exponent = U - input.key[1]
+        index = findfirst(==(exponent), basis)
+        index === nothing && continue
+        coefficient = coeff(monomial, 1)
+        coefficients[index] = get(coefficients, index, zero(coefficient)) + coefficient
+    end
+    for (index, coefficient) in coefficients
+        CUDA.@allowscalar g[index] = lift(coefficient)
+    end
+    return g
+end
+
+"""
+    reduction_terminal_polynomial(fe, chains, PR, S, params)
+
+Convert terminal reduction chains to the polynomial output expected by the
+final reduction stage.
+"""
+function reduction_terminal_polynomial(fe::ZetaFrontend, chains, PR, S, params)
+    P = cohomology_quotient(fe)
+    reduction_degree = _reduction_g_degree(P)
+    vars = gens(PR)
+    result = PR()
+    for (u, g_vec) in chains
+        cpu_g = Array(g_vec)
+        CUDA.@allowscalar g =
+            vector_to_polynomial(cpu_g, P.n, reduction_degree, PR, params.termorder)
+        result += prod(vars .^ u) * g
+    end
+    XS = prod(PR(vars[i+1]) for i in S; init = PR(1))
+    return [[div(result, XS), terminal_pole_order(P)]]
 end
