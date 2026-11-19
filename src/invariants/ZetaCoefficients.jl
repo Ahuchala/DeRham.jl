@@ -30,6 +30,16 @@ function zeta_coefficients_from_frobenius(
 end
 
 
+function _default_reduction_selection(fe::ZetaFrontend, S)
+    algorithm, selected_S, selected_variable, _ = varbyvar_reduction_setup(fe, S)
+    return algorithm, selected_S, selected_variable
+end
+
+function _default_reduction_selection(f, P, S)
+    fe = ProjectiveHypersurface{typeof(f)}(f, P)
+    return _default_reduction_selection(fe, S)
+end
+
 """
     zeta_coefficients(fe::ZetaFrontend; ...)
 
@@ -52,7 +62,8 @@ Keyword arguments:
 - `givefrobmat=false`: if true, returns `(F, coeffs)`, the Frobenius matrix
   and the coefficient vector, instead of just the coefficient vector.
 - `algorithm=:default`: selects the controlled-reduction algorithm; `:default`
-  chooses automatically.
+  chooses automatically. Double covers default to `:depthfirst` and also
+  support explicit CPU execution with `:varbyvar` and `S=[n]`.
 - `relative_precision`, `series_precision`, and `algorithm_precision`: explicit,
   uncertified precision inputs for non-hypersurface frontends. Hypersurface
   frontends reject these keywords. ``DoubleCover`` requires `series_precision`
@@ -107,14 +118,12 @@ function zeta_coefficients(
     series_precision = nothing,
     algorithm_precision = nothing,
 )
+    if !_supports_reduction_algorithm(fe, algorithm)
+        throw(ArgumentError("algorithm $algorithm is not yet supported for $(typeof(fe))"))
+    end
+
     if !(fe isa ProjectiveHypersurface)
-        if algorithm in (:pchunk, :varbyvar, :akr)
-            throw(
-                ArgumentError(
-                    "algorithm $algorithm is not yet supported for $(typeof(fe))",
-                ),
-            )
-        elseif use_gpu
+        if use_gpu
             throw(ArgumentError("GPU execution is not yet supported for $(typeof(fe))"))
         elseif context !== nothing
             throw(
@@ -122,9 +131,6 @@ function zeta_coefficients(
                     "custom reduction contexts are not yet supported for $(typeof(fe))",
                 ),
             )
-        end
-        if algorithm == :default
-            algorithm = :depthfirst
         end
     end
 
@@ -166,33 +172,24 @@ function zeta_coefficients(
     end
 
     if algorithm == :default
-        if S == [n]
-            algorithm = :varbyvar
-        elseif n > 4
-            for i = 0:n
-                if is_Ssmooth(f, P, [n-i])
-                    algorithm = :varbyvar
-                    S = [n]
-                    vars = gens(PR)
-                    new_vars = copy(vars)
-                    for j = 0:n
-                        if j == i
-                            new_vars[i+1] = vars[n+1]
-                        end
-                    end
-                    new_vars[n+1] = vars[i+1]
-                    break
-                elseif i == n
-                    algorithm = :depthfirst
+        algorithm, S, selected_variable = _default_reduction_selection(fe, S)
+        if selected_variable !== nothing
+            vars = gens(PR)
+            new_vars = copy(vars)
+            for j = 0:n
+                if j == selected_variable
+                    new_vars[selected_variable+1] = vars[n+1]
                 end
             end
-        else
-            algorithm = :depthfirst
+            new_vars[n+1] = vars[selected_variable+1]
         end
     end
 
-    if algorithm==:varbyvar && (S != [n])
-        throw("S must be [$n] for varbyvar")
+    if algorithm == :varbyvar
+        _, _, _, required_S = varbyvar_reduction_setup(fe, S)
+        if S != required_S
+            throw("S must be $required_S for varbyvar")
+        end
     end
 
     # vars_reversed = false
@@ -354,6 +351,7 @@ function zeta_coefficients(
         S,
         fLift,
         P,
+        fe,
         pseudo_inverse_mat,
         p,
         params,

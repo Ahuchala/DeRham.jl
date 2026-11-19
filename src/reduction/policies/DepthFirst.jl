@@ -28,7 +28,7 @@ function reducechain_depthfirst(u, g, m, S, f, P, p, context, cache, params)
     R = coefficient_ring(parent(f))
     (9 < params.verbose) && println("u = $u")
 
-    J = tweak(u, reduction_degree)
+    J = copy(u)
 
     gMat = context.g
     mins = similar(J)
@@ -131,38 +131,23 @@ function reducechain_depthfirst(u, g, m, S, f, P, p, context, cache, params)
     return (J, gMat)
 end
 
-function reducepoly_depthfirst(pol, S, f, P, p, context, cache, params)
-    n = nvars(parent(f)) - 1
-    d = total_degree(f)
-    terminal = terminal_pole_order(P)
+function reducepoly_depthfirst(pol, S, f, P, fe, p, context, cache, params)
     PR = parent(f)
-    R = coefficient_ring(parent(f))
-    result = PR()
-    for term in pol
-        terms = termsoforder(pol, term[2])
-        for t in terms
-            (u, _) = costadata_of_initial_term!(t, context.g, n, d, P, p, S, cache, params)
-            reduced = reducechain_depthfirst(
-                u,
-                context.g,
-                t[2],
-                S,
-                f,
-                P,
-                p,
-                context,
-                cache,
-                params,
-            )
-            (reduced_poly, m) = poly_of_end_costadata(reduced, PR, P, p, d, n, params)
-            @assert m == terminal "Controlled reduction outputted a bad pole order"
-            result += reduced_poly
-        end
-    end
-
-    vars = gens(PR)
-    XS = prod(PR(vars[i+1]) for i in S; init = PR(1))
-    [[div(result, XS), terminal]]
+    terminal_chains = (
+        reducechain_depthfirst(
+            input.key[1],
+            reduction_input_vector!(context.g, fe, input, S, cache, params),
+            input.key[2],
+            S,
+            f,
+            P,
+            p,
+            context,
+            cache,
+            params,
+        ) for (_, inputs) in reduction_input_keys(fe, pol, S) for input in inputs
+    )
+    return reduction_terminal_polynomial(fe, terminal_chains, PR, S, params)
 end
 
 function reducetransform_depthfirst(
@@ -171,6 +156,7 @@ function reducetransform_depthfirst(
     S,
     f,
     P,
+    fe,
     pseudoInverseMat,
     p,
     cache,
@@ -185,15 +171,14 @@ function reducetransform_depthfirst(
     MS1 = matrix_space(coefficient_ring(parent(f)), g_length, g_length)
     m = Integer(modulus(base_ring(MS1)))
 
-    if (3 < params.verbose)
-        computeRuv = V -> begin
+    ruv_function = reduction_ruv_function(fe, S, f, pseudoInverseMat, cache, params)
+    computeRuv = if 3 < params.verbose
+        V -> begin
             println("Computing Ruv for V = $V for the first time.")
-            @time computeRuvS(V, S, f, P, pseudoInverseMat, cache, params)
+            @time ruv_function(V)
         end
     else
-        computeRuv = V -> begin
-            computeRuvS(V, S, f, P, pseudoInverseMat, cache, params)
-        end
+        ruv_function
     end
 
     result = similar(FT)
@@ -226,10 +211,10 @@ function reducetransform_depthfirst(
                 if (0 < params.verbose)
                     println("Reducing vector $i in thread $(Threads.threadid())")
                     @time reduction =
-                        reducepoly_depthfirst(pol, S, f, P, p, context, cache, params)
+                        reducepoly_depthfirst(pol, S, f, P, fe, p, context, cache, params)
                 else
                     reduction =
-                        reducepoly_depthfirst(pol, S, f, P, p, context, cache, params)
+                        reducepoly_depthfirst(pol, S, f, P, fe, p, context, cache, params)
                 end
                 result[i] = reduction
 
@@ -242,10 +227,10 @@ function reducetransform_depthfirst(
                 if (0 < params.verbose)
                     println("Reducing vector $i")
                     @time reduction =
-                        reducepoly_depthfirst(pol, S, f, P, p, context, cache, params)
+                        reducepoly_depthfirst(pol, S, f, P, fe, p, context, cache, params)
                 else
                     reduction =
-                        reducepoly_depthfirst(pol, S, f, P, p, context, cache, params)
+                        reducepoly_depthfirst(pol, S, f, P, fe, p, context, cache, params)
                 end
                 result[i] = reduction
 
@@ -275,9 +260,10 @@ function reducetransform_depthfirst(
             if (0 < params.verbose)
                 println("Reducing vector $i in thread $(Threads.threadid())")
                 @time reduction =
-                    reducepoly_depthfirst(pol, S, f, P, p, context, cache, params)
+                    reducepoly_depthfirst(pol, S, f, P, fe, p, context, cache, params)
             else
-                reduction = reducepoly_depthfirst(pol, S, f, P, p, context, cache, params)
+                reduction =
+                    reducepoly_depthfirst(pol, S, f, P, fe, p, context, cache, params)
             end
             result[i] = reduction
         end

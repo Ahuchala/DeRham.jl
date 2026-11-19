@@ -36,6 +36,31 @@ end
     @test DeRham.weight(curve) == 1
     @test DeRham.check_input(curve) === nothing
     @test typeof(DeRham.frobenius_term_pole_order(curve, 1, 0)) == Int
+    @test DeRham.varbyvar_reduction_setup(curve, [P.n]) ==
+          (:depthfirst, [P.n], nothing, [P.n])
+
+    for algorithm in (:pchunk, :akr)
+        @test_throws ArgumentError DeRham.zeta_coefficients(
+            curve;
+            algorithm,
+            series_precision = 2,
+            algorithm_precision = 5,
+        )
+    end
+    @test_throws ArgumentError DeRham.zeta_coefficients(
+        curve;
+        algorithm = :varbyvar,
+        series_precision = 2,
+        algorithm_precision = 5,
+        use_gpu = true,
+    )
+    @test_throws ArgumentError DeRham.zeta_coefficients(
+        curve;
+        algorithm = :varbyvar,
+        series_precision = 2,
+        algorithm_precision = 5,
+        context = :custom,
+    )
 
     scale = QQ(1)
     for m = 1:6
@@ -131,14 +156,16 @@ end
     )
 
     for (id, fe, p, expected_ascending, precision_increment, expected_pair) in suite_cases
+        P = DeRham.cohomology_quotient(fe)
         basis = DeRham.get_basis_of_cohomology(fe)
-        polygon = DeRham._hodge_polygon(basis, DeRham.cohomology_quotient(fe))
+        polygon = DeRham._hodge_polygon(basis, P)
         relative_precision =
             DeRham.calculate_relative_precision(polygon, DeRham.weight(fe), p)
         N = 2 + precision_increment
         M = maximum(relative_precision) + 3 + precision_increment
         @test (N, M) == expected_pair
 
+        depthfirst_result = nothing
         for always_use_bigints in (false, true)
             result = DeRham.zeta_coefficients(
                 fe;
@@ -147,6 +174,9 @@ end
                 algorithm_precision = M,
                 always_use_bigints,
             )
+            if !always_use_bigints
+                depthfirst_result = result
+            end
             next_result = DeRham.zeta_coefficients(
                 fe;
                 algorithm = :depthfirst,
@@ -157,6 +187,25 @@ end
             @test result !== false
             @test result !== false && reverse(result) == expected_ascending
             @test result !== false && next_result == result
+        end
+
+        if id in ("g1_d4_a", "g2_d6_a")
+            varbyvar_result = DeRham.zeta_coefficients(
+                fe;
+                S = [P.n],
+                algorithm = :varbyvar,
+                series_precision = N,
+                algorithm_precision = M,
+            )
+            @test varbyvar_result !== false
+            @test varbyvar_result == depthfirst_result
+            @test reverse(varbyvar_result) == expected_ascending
+        end
+
+        if id == "g1_d4_a"
+            default_result =
+                DeRham.zeta_coefficients(fe; series_precision = N, algorithm_precision = M)
+            @test default_result == depthfirst_result
         end
     end
 
