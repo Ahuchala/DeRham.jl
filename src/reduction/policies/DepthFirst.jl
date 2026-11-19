@@ -1,14 +1,11 @@
 struct DepthFirstEngineState{E}
     engine::E
-    inputs::Dict{ReductionChainKey,Any}
 end
 
 function _depthfirst_engine_factory(execution_setup, fe, P, S, cache, params, directions)
     return () -> begin
-        inputs = Dict{ReductionChainKey,Any}()
-        fill_vector! =
-            (vector, key) ->
-                reduction_input_vector!(vector, fe, inputs[key], S, cache, params)
+        fill_vector! = (vector, key, input) ->
+            reduction_input_vector!(vector, fe, input, S, cache, params)
         preconfigured = if execution_setup.preconfigured_engine === nothing
             PreconfiguredReductionEngine(execution_setup.context_factory())
         else
@@ -22,7 +19,7 @@ function _depthfirst_engine_factory(execution_setup, fe, P, S, cache, params, di
             evaluation_kernel = execution_setup.kernel,
             fastevaluation = params.fastevaluation,
         )
-        return DepthFirstEngineState(engine, inputs)
+        return DepthFirstEngineState(engine)
     end
 end
 
@@ -39,14 +36,6 @@ function _reducepoly_depthfirst!(
     directions,
 )
     keys_by_order = reduction_input_keys(fe, pol, S)
-    empty!(runtime.inputs)
-    for (_, inputs) in keys_by_order
-        for input in inputs
-            key = ReductionChainKey(input.key[1], input.key[2])
-            runtime.inputs[key] = input
-        end
-    end
-
     terminal_chains =
         run_reduction_policy!(policy, runtime.engine, keys_by_order, directions)
     return reduction_terminal_polynomial(fe, terminal_chains, PR, S, params)

@@ -117,6 +117,35 @@
     @test execution_setup.representation == :uint
     @test execution_setup.kernel === DeRham.eval_to_linear!
     @test execution_setup.threads
+    mismatched_thread_params = DeRham.ZetaFunctionParams(
+        setup_params.verbose,
+        setup_params.givefrobmat,
+        setup_params.algorithm,
+        setup_params.termorder,
+        setup_params.vars_reversed,
+        setup_params.fastevaluation,
+        setup_params.always_use_bigints,
+        setup_params.use_gpu,
+        false,
+    )
+    @test_throws ArgumentError DeRham._validate_reduction_execution_setup(
+        setup_configuration,
+        setup_frontend,
+        mismatched_thread_params,
+    )
+    rebound_frontend =
+        DeRham.ProjectiveHypersurface(setup_f + setup_variables[1]^3)
+    @test DeRham._validate_reduction_execution_setup(
+        setup_configuration,
+        rebound_frontend,
+        setup_params,
+    ) === nothing
+    mismatched_frontend = DeRham.ProjectiveHypersurface(setup_f * setup_f)
+    @test_throws ArgumentError DeRham._validate_reduction_execution_setup(
+        setup_configuration,
+        mismatched_frontend,
+        setup_params,
+    )
 
     cases = ((2, 3, [0]), (2, 3, [2]), (2, 3, [0, 1, 2]), (4, 3, [0]), (4, 4, [0]))
     moduli = (BigInt(5)^8, BigInt(2)^40, BigInt(2)^110)

@@ -24,16 +24,22 @@ function run_reduction_policy!(
 
     for (_, inputs) in keys_by_order
         for input in inputs
-            chain = materialize(engine, ReductionChainKey(input.key[1], input.key[2]))
-            while chain.key.order > terminal_order
-                direction = rev_chooseV(collect(chain.key.u), policy.degree, policy.S)
-                maximum_chunk = chain.key.order - terminal_order
-                chunk = _depthfirst_chunk_length(chain.key.u, direction, maximum_chunk)
+            chain = materialize(
+                engine,
+                ReductionChainKey(input.key[1], input.key[2]),
+                input,
+            )
+            key = reduction_chain_key(engine, chain)
+            while key.order > terminal_order
+                direction = rev_chooseV(collect(key.u), policy.degree, policy.S)
+                maximum_chunk = key.order - terminal_order
+                chunk = _depthfirst_chunk_length(key.u, direction, maximum_chunk)
                 chunk >= 1 || throw(ArgumentError("depthfirst selected an empty chunk"))
-                directions(chain.key.u, chunk, direction) || throw(
+                directions(key.u, chunk, direction) || throw(
                     ArgumentError("depthfirst selected an invalid reduction direction"),
                 )
                 reduce!(engine, chain, direction, chunk)
+                key = reduction_chain_key(engine, chain)
             end
             push!(terminal_chains, finish!(engine, chain))
         end

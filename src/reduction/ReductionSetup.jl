@@ -129,6 +129,25 @@ function _reduction_representation(vector)
     return :custom
 end
 
+function _validate_reduction_execution_setup(configuration, fe, params)
+    frontend_matches =
+        typeof(fe) === typeof(configuration.frontend) &&
+        cohomology_quotient(fe) == cohomology_quotient(configuration.frontend)
+    frontend_matches ||
+        throw(ArgumentError("the frontend does not match the reduction setup"))
+    params.algorithm == configuration.policy ||
+        throw(ArgumentError("the algorithm does not match the reduction setup"))
+    params.use_gpu == configuration.use_gpu ||
+        throw(ArgumentError("the GPU option does not match the reduction setup"))
+    params.use_threads == configuration.use_threads ||
+        throw(ArgumentError("the threading option does not match the reduction setup"))
+    params.always_use_bigints == configuration.always_use_bigints ||
+        throw(ArgumentError("the integer representation option does not match the reduction setup"))
+    params.fastevaluation == configuration.fastevaluation ||
+        throw(ArgumentError("the evaluation option does not match the reduction setup"))
+    return nothing
+end
+
 function reduction_execution_setup(
     configuration::ReductionSetup,
     fe::ZetaFrontend,
@@ -140,6 +159,7 @@ function reduction_execution_setup(
     params,
     context,
 )
+    _validate_reduction_execution_setup(configuration, fe, params)
     d = total_degree(f)
     n = nvars(parent(f)) - 1
     g = _reduction_g_degree(P)

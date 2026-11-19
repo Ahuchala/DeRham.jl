@@ -75,16 +75,31 @@ function _matrix_chain_state(engine::MatrixReductionEngine, chain::ReductionChai
     return state
 end
 
-function materialize(engine::MatrixReductionEngine, key::ReductionChainKey)
+function _materialize_matrix_chain!(engine, key, input)
     key.order >= engine.geometry.terminal_order ||
         throw(ArgumentError("cannot materialize a chain below the terminal order"))
     vector = _matrix_engine_vector(engine.context.g)
-    engine.fill_vector!(vector, key)
+    if input !== nothing && applicable(engine.fill_vector!, vector, key, input)
+        engine.fill_vector!(vector, key, input)
+    elseif applicable(engine.fill_vector!, vector, key)
+        engine.fill_vector!(vector, key)
+    else
+        throw(ArgumentError("the matrix engine requires an input record to fill a chain"))
+    end
     identifier = engine.next_identifier
     engine.next_identifier += 1
     engine.live[identifier] = MatrixReductionChainState(key, vector)
     return ReductionChainHandle(key, identifier)
 end
+
+materialize(engine::MatrixReductionEngine, key::ReductionChainKey) =
+    _materialize_matrix_chain!(engine, key, nothing)
+
+materialize(engine::MatrixReductionEngine, key::ReductionChainKey, input) =
+    _materialize_matrix_chain!(engine, key, input)
+
+reduction_chain_key(engine::MatrixReductionEngine, chain::ReductionChainHandle) =
+    _matrix_chain_state(engine, chain).key
 
 function _combine_matrix_vectors!(destination::CuModArray, source)
     my_add!(destination, destination, source)

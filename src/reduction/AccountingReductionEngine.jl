@@ -71,6 +71,9 @@ function _accounting_key(engine::AccountingReductionEngine, chain::ReductionChai
     return key
 end
 
+reduction_chain_key(engine::AccountingReductionEngine, chain::ReductionChainHandle) =
+    _accounting_key(engine, chain)
+
 function _accounting_event!(engine::AccountingReductionEngine, event::NamedTuple)
     push!(engine.events, event)
     return nothing

@@ -152,6 +152,7 @@ struct CachePEP{T,S} <: AbstractPEP{S}
     convert::Function
     temp::Base.RefValue{Union{Vector{S},Nothing}}
     tempV::Base.RefValue{Union{Vector{Int},Nothing}}
+    stale::Set{Tuple}
 
     function CachePEP{T,S}(backing, create, convert_entry, maxsize) where {T,S}
         temp = Ref{Union{Vector{S},Nothing}}(nothing)
@@ -160,7 +161,7 @@ struct CachePEP{T,S} <: AbstractPEP{S}
         Ucomponent = LRU{Vector{Int},Vector{S}}(maxsize = maxsize, finalizer = recover)
         # Ucomponent = LFUDA{Vector{Int},Vector{S}}(maxsize=maxsize)
 
-        new{T,S}(Ucomponent, backing, create, convert_entry, temp, tempV)
+        new{T,S}(Ucomponent, backing, create, convert_entry, temp, tempV, Set{Tuple}())
     end
 end
 
@@ -177,6 +178,9 @@ function recover!(keyref::Ref, valueref::Ref, key::Vector, value::Vector)
 end
 
 function Base.getindex(P::CachePEP, V::Vector{Int})
+    key = Tuple(V)
+    cache_hit = haskey(P.Ucomponent, V)
+    temp_hit = V == P.tempV[]
     default = () -> begin
         # cache miss!
         if V == P.tempV[]
@@ -199,7 +203,14 @@ function Base.getindex(P::CachePEP, V::Vector{Int})
         end
     end
 
-    get!(default, P.Ucomponent, V)
+    component = get!(default, P.Ucomponent, V)
+    if key in P.stale
+        if cache_hit || temp_hit
+            P.convert(component, P.backing[V])
+        end
+        delete!(P.stale, key)
+    end
+    return component
 end
 
 """
@@ -293,10 +304,11 @@ mutable struct PregenLazyPEP{T} <: AbstractPEP{T}
     Vs::Vector{Vector{Int}}
     Ucomponent::Dict{Vector{Int},Vector{T}}
     compute::Union{Function,Nothing}
+    stale::Set{Tuple}
 
     function PregenLazyPEP{T}(compute; Vs = Vector{Vector{Int}}()) where {T}
         Ucomponent = Dict{Vector{Int},Vector{T}}()
-        new{T}(Vs, Ucomponent, compute)
+        new{T}(Vs, Ucomponent, compute, Set{Tuple}())
     end
 end
 
@@ -305,7 +317,13 @@ allcomponents(P::PregenLazyPEP) = P.Ucomponent
 
 function Base.getindex(P::PregenLazyPEP, V::Vector{Int})
     if haskey(P.Ucomponent, V)
-        return P.Ucomponent[V]
+        coeffs = P.Ucomponent[V]
+        key = Tuple(V)
+        if key in P.stale
+            _copy_ruv_component!(coeffs, P.compute(V))
+            delete!(P.stale, key)
+        end
+        return coeffs
     end
 
     coeffs = P.compute(V)
@@ -344,11 +362,12 @@ end
     bind_ruv_function!(pep, compute)
 
 Rebind a preconfigured PEP to a polynomial-specific R_uv function while
-refreshing cached components in their existing matrix allocations.
+marking cached components stale so they refresh in their existing matrix
+allocations when next accessed.
 """
 function bind_ruv_function!(pep::PregenLazyPEP, compute)
     for V in pep.Vs
-        _copy_ruv_component!(pep.Ucomponent[V], compute(V))
+        push!(pep.stale, Tuple(V))
     end
     pep.compute = compute
     return pep
@@ -356,11 +375,11 @@ end
 
 function bind_ruv_function!(pep::CachePEP, compute)
     bind_ruv_function!(pep.backing, compute)
-    for V in collect(cachedpoints(pep))
-        pep.convert(pep.Ucomponent[V], pep.backing[V])
+    for V in cachedpoints(pep)
+        push!(pep.stale, Tuple(V))
     end
     if pep.tempV[] !== nothing
-        pep.convert(pep.temp[], pep.backing[pep.tempV[]])
+        push!(pep.stale, Tuple(pep.tempV[]))
     end
     return pep
 end

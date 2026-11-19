@@ -89,13 +89,25 @@ the reduction degree and terminal order, not the cohomology quotient.
 function reduction_engine_geometry end
 
 """
-    materialize(engine, key)
+    reduction_chain_key(engine, chain)
+
+Return the current key of a live chain without inspecting its engine-owned
+handle representation.
+"""
+function reduction_chain_key end
+
+"""
+    materialize(engine, key[, input])
 
 Allocate a chain for `key`, fill its vector with the frontend input in the
-prescaled normalization, and return an opaque live-chain handle. The engine
+prescaled normalization, and return an opaque live-chain handle. When supplied,
+`input` is an opaque frontend record associated with the chain. The engine
 chooses the vector representation and placement.
 """
 function materialize end
+
+materialize(engine::AbstractReductionEngine, key::ReductionChainKey, input) =
+    materialize(engine, key)
 
 """
     reduce!(engine, chain, v, k)
@@ -148,10 +160,11 @@ function finish! end
 """
     run_reduction_policy!(policy, engine, keys_by_order, directions)
 
-Run `policy` against `engine` using only frontend chain keys grouped by order
-and the frontend's `V_S` direction predicate. The policy chooses chains,
-directions, chunk lengths, and combine points through the engine interface; it
-does not receive matrices, vectors, representations, or device placement.
+Run `policy` against `engine` using frontend input records grouped by order and
+the frontend's `V_S` direction predicate. The policy passes each input record
+to the engine when materializing its chain, then chooses directions and chunk
+lengths through the engine interface. It does not inspect input records,
+matrices, vectors, representations, or device placement.
 Implementations return the finished terminal chains.
 """
 function run_reduction_policy! end
@@ -164,6 +177,7 @@ public AbstractReductionEngine,
     ReductionChainHandle,
     ReductionDirectionSet,
     reduction_engine_geometry,
+    reduction_chain_key,
     materialize,
     reduce!,
     reduce_batched!,

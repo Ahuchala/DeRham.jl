@@ -22,6 +22,7 @@
     @test isabstracttype(DeRham.AbstractReductionPolicy)
     @test isdefined(DeRham, :materialize)
     @test parentmodule(DeRham.materialize) === DeRham
+    @test isdefined(DeRham, :reduction_chain_key)
     @test isdefined(DeRham, :reduce!)
     @test isdefined(DeRham, :reduce_batched!)
     @test isdefined(DeRham, :combine!)
