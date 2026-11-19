@@ -62,7 +62,7 @@ A generic chain handle containing its immutable key and an engine-owned
 identifier. Engines may use their own subtypes of `AbstractReductionChainHandle`
 when a different handle representation is useful.
 """
-struct ReductionChainHandle{K<:ReductionChainKey,I} <: AbstractReductionChainHandle
+mutable struct ReductionChainHandle{K<:ReductionChainKey,I} <: AbstractReductionChainHandle
     key::K
     identifier::I
 end
@@ -116,8 +116,10 @@ function reduce_batched! end
 """
     combine!(engine, order)
 
-For the given order, combine live chains with equal exponent vectors by adding
-their vectors. The engine owns the resulting live-chain bookkeeping.
+For the given order, combine live chains with equal exponent vectors. Vector
+engines add their chain vectors; accounting engines record the duplicate
+removals. Return the surviving handles at that order. The engine owns the
+resulting live-chain bookkeeping.
 """
 function combine! end
 
@@ -125,8 +127,10 @@ function combine! end
     finish!(engine, chain)
 
 Read back a terminal chain as its exponent vector and reduced vector, then free
-the live chain from the engine. The frontend converts these values to a
-polynomial.
+the live chain from the engine. Return the engine's terminal-chain result; a
+matrix engine returns its exponent vector and reduced vector, while an
+accounting engine returns only the key. The frontend converts matrix results to
+a polynomial.
 """
 function finish! end
 
