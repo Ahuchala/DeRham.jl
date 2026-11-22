@@ -129,6 +129,9 @@ include("ExamplePolynomials.jl")
 include("precision/PrecisionInformation.jl")
 include("K3OverF3.jl")
 
+include("frobenius/SparseCartier.jl")
+include("finalreduction/SparseDworkReduction.jl")
+include("invariants/SparseDwork.jl")
 include("./invariants/ZetaCoefficients.jl")
 include("./invariants/HodgePolygon.jl")
 include("./invariants/Smoothness.jl")
@@ -167,7 +170,9 @@ export zeta_coefficients,
     jacobian_point_counts,
     jacobian_zeta_function
 
-public fermat_hypersurface,
+public sparse_dwork_coefficients,
+    sparse_dwork_zeta,
+    fermat_hypersurface,
     random_hypersurface,
     DoubleCover,
     get_basis_of_cohomology,
