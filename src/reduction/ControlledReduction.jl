@@ -185,7 +185,15 @@ struct MatrixReductionRuntime{E}
     engine::E
 end
 
-function _matrix_reduction_runtime_factory(execution_setup, fe, P, S, cache, params, directions)
+function _matrix_reduction_runtime_factory(
+    execution_setup,
+    fe,
+    P,
+    S,
+    cache,
+    params,
+    directions,
+)
     return () -> begin
         fill_vector! =
             (vector, key, input) ->
@@ -221,15 +229,16 @@ function _reducepoly_matrix_policy!(
 )
     keys_by_order = reduction_input_keys(fe, pol, S)
     terminal_polynomial = Ref(PR())
-    on_terminal = chain -> begin
-        terminal_polynomial[] = reduction_add_terminal_chain(
-            fe,
-            terminal_polynomial[],
-            chain,
-            PR,
-            params,
-        )
-    end
+    on_terminal =
+        chain -> begin
+            terminal_polynomial[] = reduction_add_terminal_chain(
+                fe,
+                terminal_polynomial[],
+                chain,
+                PR,
+                params,
+            )
+        end
     run_reduction_policy!(policy, runtime.engine, keys_by_order, directions, on_terminal)
     return _finish_reduction_terminal_polynomial(fe, terminal_polynomial[], PR, S)
 end
@@ -260,8 +269,15 @@ function _reducetransform_matrix_policy(
         context,
     )
     directions = ReductionDirectionSet(reduction_directions(fe, S))
-    runtime_factory =
-        _matrix_reduction_runtime_factory(execution_setup, fe, P, S, cache, params, directions)
+    runtime_factory = _matrix_reduction_runtime_factory(
+        execution_setup,
+        fe,
+        P,
+        S,
+        cache,
+        params,
+        directions,
+    )
     result = similar(FT)
 
     reduce_one! = function (runtime, i, threaded)
