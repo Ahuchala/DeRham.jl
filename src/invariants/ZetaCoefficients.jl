@@ -63,7 +63,9 @@ Keyword arguments:
   and the coefficient vector, instead of just the coefficient vector.
 - `algorithm=:default`: selects the controlled-reduction algorithm; `:default`
   chooses automatically. Double covers default to `:depthfirst` and also
-  support explicit CPU execution with `:varbyvar` and `S=[n]`.
+  support explicit CPU execution with `:varbyvar` and `S=[n]`, or `:pchunk`
+  when the working residue-ring modulus is below `2^64` with the default
+  integer representation.
 - `relative_precision`, `series_precision`, and `algorithm_precision`: explicit,
   uncertified precision inputs for non-hypersurface frontends. Hypersurface
   frontends reject these keywords. ``DoubleCover`` requires `series_precision`
