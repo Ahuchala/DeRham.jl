@@ -42,8 +42,10 @@ function reducetransform(
             context,
             fe,
         )
-    elseif params.algorithm == :akr
-        reducetransform_akr(FT, N_m, S, f, pseudoInverseMat, p, cache, params)
+    elseif params.algorithm == akr || params.algorithm == akr_naive
+        reducetransform_akr_naive(FT, N_m, S, f, pseudoInverseMat, p, cache, params)
+    elseif params.algorithm == akr_levelbylevel
+        reducetransform_akr_levelbylevel(FT, N_m, S, f, pseudoInverseMat, p, cache, params)
     else
         println(params.algorithm)
         throw(ArgumentError("Unsupported Algorithm: "))
