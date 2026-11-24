@@ -42,9 +42,9 @@ function _reducepoly_akr_naive(pol, S, f, p, picache, params)
     for term in pol
         terms = termsoforder(pol, term[2])
         for t in terms
-            g = polynomial_to_vector(t[1], n+1, :invlex)
+            g = polynomial_to_vector(t[1], n+1, params.termorder)
             reduced = _reducechain_akr_naive(g, t[2], f, p, picache, params)
-            reduced_poly = vector_to_polynomial(reduced, n, d*n-n-1, PR, :invlex)
+            reduced_poly = vector_to_polynomial(reduced, n, d*n-n-1, PR, params.termorder)
             result += reduced_poly
         end
     end
@@ -151,12 +151,12 @@ function _reducepoly_akr_levelbylevel(pol, S, f, p, picache, params)
 
     for m = highm:-1:(n+1)
         for term in termsoforder(pol, m)
-            g .+= polynomial_to_vector(term[1], n+1, :invlex)
+            g .+= polynomial_to_vector(term[1], n+1, params.termorder)
         end
         g = _reduce_akr_level(g, m, f, picache, params)
     end
 
-    result = vector_to_polynomial(g, n, d*n-n-1, PR, :invlex)
+    result = vector_to_polynomial(g, n, d*n-n-1, PR, params.termorder)
     return [[result, n]]
 end
 
