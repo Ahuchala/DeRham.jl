@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT OR GPL-3.0-or-later
 // Copyright (c) 2026 Andrew Huchala
 // Adapted with permission from MathAgents/andrew-huchala,
-// commit 708c1efbf00b9675ca3857f92382aaf200063551. See PROVENANCE.md.
+// revisions 708c1efbf00b9675ca3857f92382aaf200063551 and
+// a5f802454f425ed6eae2aea197a6b3fee65ddba8. See PROVENANCE.md.
 #include "harvey_window.hpp"
 #include <algorithm>
 #include <exception>
@@ -20,7 +21,6 @@
 using Exp = std::array<int, NV>;
 using u32 = uint32_t;
 using u64 = uint64_t;
-using PowerWord = uint16_t; // p=11,13 only: power_mod <= 13^4 < 2^15
 struct Term { Exp e; u32 c; };
 
 static int P, N, D;
@@ -37,9 +37,16 @@ static std::vector<std::array<u64, NV + 1>> choose;
 static u64 binom(int a, int b) { return (a < 0 || b < 0 || b > a) ? 0 : choose[a][b]; }
 static u64 powmod(u64 a, u64 e, u64 m) { u64 r = 1 % m; a %= m; while (e) { if (e & 1) r = r * a % m; a = a * a % m; e >>= 1; } return r; }
 static u64 invmod(u64 a, u64 m) {           // a unit modulo m = p^N
-    int64_t t = 0, nt = 1, r = (int64_t)m, nr = (int64_t)(a % m);
-    while (nr) { int64_t q = r / nr; int64_t x = t - q * nt; t = nt; nt = x; x = r - q * nr; r = nr; nr = x; }
-    return (u64)((t % (int64_t)m + (int64_t)m) % (int64_t)m);
+    __int128 t = 0, nt = 1;
+    int64_t r = (int64_t)m, nr = (int64_t)(a % m);
+    while (nr) {
+        int64_t q = r / nr;
+        __int128 x = t - q * nt;
+        t = nt; nt = x;
+        int64_t remainder = r - q * nr;
+        r = nr; nr = remainder;
+    }
+    return (u64)((t % m + m) % m);
 }
 static double now() { return std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count(); }
 
@@ -124,6 +131,36 @@ static bool invert(const std::vector<u32> &A32, int n, std::vector<u32> &Xout) {
     Xout.resize((size_t)n * n);
     for (size_t i = 0; i < X.size(); ++i) Xout[i] = (u32)(X[i] % MOD);
     return true;
+}
+
+// In the graded Jacobian quotient suppose J_s = <b>, so [m] = L(m)b
+// for every monomial of degree s. For |u|=s-1, commutativity gives
+// L(u*x_i) x_j*b = L(u*x_j) x_i*b. Two nonproportional vectors
+// (L(u*x_i))_i over F_p therefore force every x_i*b to vanish.
+// J_(s+1) and all higher pieces vanish, certifying the unused top level.
+static bool zero_above_line(const Level &level) {
+    if (level.basis.size() != 1 || level.Bas.size() != level.cols.size()) return false;
+    const int degree = level.k * D - NV;
+    if (degree < 1) return false;
+    std::vector<Exp> monomials;
+    compositions(degree - 1, NV, monomials);
+    std::array<u32, NV> first{};
+    int pivot = -1;
+    for (Exp u : monomials) {
+        std::array<u32, NV> row;
+        for (int i = 0; i < NV; ++i) {
+            ++u[i];
+            row[i] = level.Bas[lexrank(u, degree)] % P;
+            --u[i];
+        }
+        if (pivot < 0) {
+            for (int i = 0; i < NV; ++i) if (row[i]) { first = row; pivot = i; break; }
+        } else {
+            for (int i = 0; i < NV; ++i)
+                if ((u64)row[i]*first[pivot] % P != (u64)first[i]*row[pivot] % P) return true;
+        }
+    }
+    return false;
 }
 
 static bool build_level(int k, bool need_relations) {
@@ -243,6 +280,7 @@ static inline u64 row_start(int degree, const int *e) {
     return r;
 }
 
+template<typename PowerWord>
 struct Pull {                               // one coefficient row of f^h from f^(h-1), race-free
     const std::vector<PowerWord> *src; std::vector<PowerWord> *dst; int degree; u64 power_mod;      // degree of the destination
     const std::vector<Term> &power_terms;
@@ -268,6 +306,117 @@ struct Pull {                               // one coefficient row of f^h from f
     }
 };
 
+struct ResidueRow {
+    Exp prefix;
+    int sum_last, lo, hi;
+    size_t offset;
+};
+
+struct ResidueLayout {
+    std::vector<ResidueRow> rows;
+    size_t size = 0;
+
+    void enumerate(Exp &prefix, int axis, int remaining) {
+        const int lo = std::max(0, remaining - (NV - axis - 1)*(P - 1));
+        const int hi = std::min(P-1, remaining);
+        if (axis == NV-2) {
+            rows.push_back({prefix, remaining, lo, hi, size});
+            size += hi-lo+1;
+        } else {
+            for (int r=lo; r<=hi; ++r) {
+                prefix[axis]=r;
+                enumerate(prefix,axis+1,remaining-r);
+            }
+        }
+    }
+
+    explicit ResidueLayout(int weight) {
+        Exp prefix{};
+        enumerate(prefix,0,weight);
+    }
+};
+
+template<typename Word>
+static std::vector<Word> residue_blocks(const std::vector<Word> &source, int degree,
+        const Exp *highs, size_t count, const ResidueLayout &layout, const Exp &shift, bool reverse) {
+    std::vector<Word> packed(layout.size*count, 0);
+    for (size_t h=0; h<count; ++h) {
+        Exp base;
+        for (int i=0; i<NV; ++i) base[i]=P*highs[h][i]-shift[i];
+        Word *block = packed.data()+h*layout.size;
+        for (const auto &r : layout.rows) {
+            Exp exponent;
+            bool valid=true;
+            for (int i=0; i<NV-2; ++i) {
+                exponent[i]=base[i]+r.prefix[i];
+                if (exponent[i]<0) { valid=false; break; }
+            }
+            if (!valid) continue;
+            const int lo=std::max(r.lo,-base[NV-2]);
+            const int hi=std::min(r.hi,base[NV-1]+r.sum_last);
+            if (lo>hi) continue;
+            const Word *start=source.data()+row_start(degree,exponent.data())+(base[NV-2]+lo);
+            std::copy_n(start,hi-lo+1,block+r.offset+(lo-r.lo));
+        }
+        if (reverse) std::reverse(block, block+layout.size);
+    }
+    return packed;
+}
+
+
+template<typename Word>
+static u64 residue_dot(const Word *x, const Word *y, size_t length, size_t) {
+    u64 sum = 0;
+    for (size_t i = 0; i < length; ++i) sum += (u64)x[i] * y[i];
+    return sum;
+}
+
+template<typename Word>
+static void residue_coefficients(int k, int dj, const std::vector<int> &positions,
+        size_t rank, const std::vector<std::vector<Word>> &layers, u64 modulus,
+        std::vector<u32> &values) {
+    const int m=P*k-dj, a=m/2, b=m-a, top=k*D-NV;
+    const int max_residue=NV*(P-1);
+    auto dot = &residue_dot<Word>;
+    size_t vector_batch = 0;
+    // Each column owns its accumulator. Sharing the left blocks across
+    // columns and packing only a few right blocks bounds the workspace.
+    std::vector<std::vector<u64>> sums(positions.size(), std::vector<u64>(levels[k].cols.size()));
+    for (int u=0; u<=top; ++u) {
+        const int r=D*a-P*u;
+        if (r<0 || r>max_residue) continue;
+        ResidueLayout left(r), right(max_residue-r);
+        std::vector<Exp> U,V;
+        compositions(u,NV,U);
+        compositions(top-u,NV,V);
+        const auto A=residue_blocks(layers[a],D*a,U.data(),U.size(),left,Exp{},false);
+
+        for (size_t col=0; col<positions.size(); ++col) {
+            Exp shift=levels[dj].cols[levels[dj].basis[col]];
+            for (int &v : shift) --v;
+            constexpr size_t panel=4;
+            for (size_t offset=0; offset<V.size(); offset+=panel) {
+                size_t count=std::min(panel,V.size()-offset);
+                const auto B=residue_blocks(layers[b],D*b,V.data()+offset,count,right,shift,true);
+                for (size_t i=0; i<U.size(); ++i) {
+                    const Word *x=A.data()+i*left.size;
+                    for (size_t j=0; j<count; ++j) {
+                        const Word *y=B.data()+j*right.size;
+                        const u64 sum = dot(x, y, left.size, vector_batch);
+                        Exp high;
+                        for (int v=0;v<NV;++v) high[v]=U[i][v]+V[offset+j][v];
+                        sums[col][lexrank(high,top)]+=sum;
+                    }
+                }
+            }
+        }
+    }
+    for (size_t col=0; col<positions.size(); ++col)
+        for (size_t c=0; c<levels[k].cols.size(); ++c)
+            values[c*rank+positions[col]]=sums[col][c]%modulus;
+}
+
+template<typename PowerWord>
 struct Box {
     const PowerWord *A, *B; const int *e; int suffix[NV + 1]; u64 total = 0;
     // In a square, the slices x_0=u and x_0=e[0]-u have equal sums.
@@ -314,12 +463,13 @@ struct Box {
     }
 };
 
-int compute(u64 power_mod) {
+template<typename PowerWord>
+int compute(u64 power_mod, bool divided_frobenius) {
     int K0 = NV * (D - 1) / D + 1, top = N - 1;
     if (top > K0) { fprintf(stderr, "needs N - 1 <= K0 = %d\n", K0); return 2; }
     int K = std::max(K0 - 1, top);
     int mmax = P * top;
-    const bool use_window = P > 13;
+    const bool use_window = NV != 5 && P > 13;
     int cmax = use_window ? K0 * D + NV :
         std::max(D * ((mmax + 1) / 2 + 1), K * D) + NV + 2;
     choose.resize(cmax + 1);
@@ -329,10 +479,19 @@ int compute(u64 power_mod) {
     levels.resize(K0 + 1);
     levels[0].k = 0;
     // level K0 has no basis exactly when X is smooth; it is built for that check even if no slab reaches it
-    for (int k = 1; k <= K0; ++k) if (!build_level(k, k <= top)) { fprintf(stderr, "Jacobian rank in W-degree %d is not that of a smooth hypersurface\n", k); return 3; }
+    for (int k = 1; k <= K0; ++k) {
+        if (NV == 6 && k == K0 && top == k-1 && zero_above_line(levels[k-1])) {
+            fprintf(stderr, "certified_top_from_socle 1\n");
+            break;
+        }
+        if (!build_level(k, k <= top)) {
+            fprintf(stderr, "Jacobian rank in W-degree %d is not that of a smooth hypersurface\n", k);
+            return 3;
+        }
+    }
     double t1 = now();
 
-    // Integral graded complements have dimensions 1, 19, 1.
+    // Integral graded complements have the smooth hypersurface Hilbert function.
     // basis, in the order of ProjectiveDwork.V (sorted by (k, nu))
     struct BasisEl { int k, col; };
     std::vector<BasisEl> V;
@@ -358,7 +517,7 @@ int compute(u64 power_mod) {
             int degree = D * h;
             for (int e0 = 0; e0 <= degree; ++e0) {
                 int e[NV]; e[0] = e0;
-                Pull pl{prev, &next, degree, power_mod, power_terms};
+                Pull<PowerWord> pl{prev, &next, degree, power_mod, power_terms};
                 pl.rec(e, 1, degree - e0);
             }
             if (keep[h]) { layers[h].swap(next); prev = &layers[h]; std::vector<PowerWord>().swap(tmp); }
@@ -390,43 +549,87 @@ int compute(u64 power_mod) {
         std::vector<Exp> support;
         std::vector<u64> coeffs;
         for (const auto &t : terms) { support.push_back(t.e); coeffs.push_back(t.c); }
+        // At pole orders h=2,3,4 the needed powers are f^(pk-h).
+        // Extract f^(pk-4) once and convolve the readouts with f^(4-h).
+        const bool shared = NV == 6;
+        std::vector<std::vector<std::pair<size_t,u64>>> readout_weights(b);
+        if (shared) {
+            std::map<Exp,u64> power{{Exp{}, 1}};
+            for (int h = K; h >= V.front().k; --h) {
+                for (int j : vpos[h]) {
+                    const Exp &mu = levels[h].cols[V[j].col];
+                    for (const auto &[e, weight] : power) {
+                        Exp slot = mu;
+                        for (int i = 0; i < NV; ++i) slot[i] += e[i];
+                        if (weight) readout_weights[j].emplace_back(levels[K].index(slot), weight);
+                    }
+                }
+                if (h > V.front().k) {
+                    std::map<Exp,u64> next;
+                    for (const auto &[e, weight] : power)
+                        for (const auto &t : terms) {
+                            Exp exponent = e;
+                            for (int i = 0; i < NV; ++i) exponent[i] += t.e[i];
+                            auto &v = next[exponent];
+                            v = (v + weight * t.c) % power_mod;
+                        }
+                    power.swap(next);
+                }
+            }
+        }
         try {
             for (int k=1; k<=top; ++k) {
                 const auto &cols=levels[k].cols;
                 window_values[k].resize(cols.size()*b);
-                for (int dj=1; dj<=K; ++dj) {
+                for (int dj=shared ? K : 1; dj<=K; ++dj) {
                     int m=P*k-dj;
                     if (m<1 || levels[dj].basis.empty() || cols.empty()) continue;
                     int pad=std::max(0,(D-1)*NV+1-dj*D);
                     std::vector<Exp> readouts;
-                    for (int col : levels[dj].basis) {
-                        Exp slot=levels[dj].cols[col];
+                    const auto &level=levels[dj];
+                    const size_t count=shared ? level.cols.size() : level.basis.size();
+                    for (size_t r=0; r<count; ++r) {
+                        Exp slot=level.cols[shared ? r : level.basis[r]];
                         slot.back()+=pad;
                         readouts.push_back(slot);
                     }
                     harvey::Window<NV> window(D,m,P,power_mod,support,coeffs,readouts);
-                    groups += cols.size();
-                    std::exception_ptr error;
+                    groups+=cols.size();
                     for (size_t c=0; c<cols.size(); ++c) {
-                        try {
-                            Exp center=cols[c];
-                            for (int &x : center) x*=P;
-                            center.back()+=pad;
-                            auto values=window.extract(center);
-                            for (size_t r=0; r<values.size(); ++r)
-                                window_values[k][c*b+vpos[dj][r]]=values[r];
-                        } catch (...) {
-                            error=std::current_exception();
+                        Exp center=cols[c];
+                        for (int &x : center) x*=P;
+                        center.back()+=pad;
+                        auto values=window.extract(center);
+                        u32 *row=window_values[k].data()+c*b;
+                        if (shared) {
+                            for (int j=0; j<b; ++j) {
+                                // <=462 products, each <2^64; sum <2^73.
+                                __uint128_t sum=0;
+                                for (const auto &[r,weight] : readout_weights[j])
+                                    sum+=__uint128_t(values[r])*weight;
+                                row[j]=sum%power_mod;
+                            }
+                        } else {
+                            for (size_t r=0; r<count; ++r) row[vpos[dj][r]]=values[r];
                         }
                     }
-                    if (error) std::rethrow_exception(error);
                 }
             }
-            fprintf(stderr, "window_groups %zu\n", groups);
+            fprintf(stderr, "window_groups %zu shared_readouts %d\n", groups, int(shared));
         } catch (const std::exception &e) {
             fprintf(stderr, "window: %s\n",e.what());
             return 2;
         }
+    }
+    // Pack complementary exponent residues for the highest fourfold slab.
+    // Each coefficient uses every smaller half-power monomial at most once.
+    const bool use_radix=NV==6 && !use_window && layers[H].size()<=product_budget(power_mod);
+    std::vector<u32> radix_values;
+    if (use_radix) {
+        radix_values.resize(levels[top].cols.size()*b);
+        for (int dj=1; dj<=K; ++dj)
+            if (!vpos[dj].empty()) residue_coefficients(top,dj,vpos[dj],b,layers,power_mod,radix_values);
+        fprintf(stderr,"radix_coefficients %zu\n",radix_values.size());
     }
     u64 nreq = 0;
     for (int j = 0; j < b; ++j) {
@@ -438,7 +641,7 @@ int compute(u64 power_mod) {
             int order = 0; u64 unit = 1;
             for (int x = 2; x <= m; ++x) { int y = x; while (y % P == 0) { y /= P; ++order; } unit = unit * y % MOD; }
             u64 factor = invmod(unit, MOD);
-            for (int i = 0; i < k - order; ++i) factor = factor * P % MOD;       // k - order >= 0 for m < p^2
+            for (int i = int(divided_frobenius); i < k - order; ++i) factor = factor * P % MOD;       // k - order >= 0 for m < p^2
             if (k & 1) factor = (MOD - factor) % MOD;
             size_t nc = levels[k].cols.size();
             std::vector<u64> cur(nc, 0);
@@ -447,11 +650,13 @@ int compute(u64 power_mod) {
                 for (int l = 0; l < NV; ++l) e[l] = P * levels[k].cols[c][l] - mu[l];
                 ++nreq;
                 if (*std::min_element(e.begin(), e.end()) < 0) continue;
-                if (use_window) {
+                if (use_radix && k==top) {
+                    cur[c]=u64(radix_values[c*b+j])*factor%MOD;
+                } else if (use_window) {
                     cur[c] = factor * window_values[k][c*b+j] % MOD;
                 } else {
                     int a = m/2, bb = m-a;
-                    Box box;
+                    Box<PowerWord> box;
                     box.A = layers[a].data(); box.B = layers[bb].data(); box.e = e.data();
                     box.suffix[NV] = 0;
                     for (int l=NV-1; l>=0; --l) box.suffix[l] = box.suffix[l+1]+e[l];
@@ -507,40 +712,48 @@ int compute(u64 power_mod) {
 
     printf("%d\n", b);
     for (auto &v : V) { printf("%d", v.k); for (int l = 0; l < NV; ++l) printf(" %d", levels[v.k].cols[v.col][l]); printf("\n"); }
-    for (int i = 0; i < b; ++i) { for (int j = 0; j < b; ++j) printf(j ? " %u" : "%u", A[(size_t)i * b + j]); printf("\n"); }
+    for (int i = 0; i < b; ++i) { for (int j = 0; j < b; ++j) printf(j ? " %llu" : "%llu", (unsigned long long)(u64(A[(size_t)i * b + j]) * (divided_frobenius ? P : 1))); printf("\n"); }
     fprintf(stderr, "rank %d levels %.6fs powers %.6fs coefficients+grouping %.6fs reduction %.6fs requests %llu largest_power %d\n",
             b, t1 - t0, t2 - t1, t3 - t2, t4 - t3, (unsigned long long)nreq, mmax);
     return 0;
 }
 
 int main() {
+    static_assert(NV >= 4 && NV <= 6, "supported variable counts are 4, 5, 6");
     int nt;
     if (!(std::cin >> P >> N >> nt)) return 2;
-    // Protocol v1: full dense quartic, bounded prime and absolute precision.
-    if (P < 11 || P > 101 || N < 3 || N > (P <= 47 ? 5 : 4) || nt != 35) return 2;
-    for (int a = 2; a*a <= P; ++a) if (P % a == 0) return 2;
-    MOD = 1;
-    for (int i = 0; i < N; ++i) {
-        if (MOD > UINT32_MAX / (u64)P) {
-            fprintf(stderr, "needs p^N < 2^32\n");
-            return 2;
-        }
-        MOD *= P;
+    const int degree=NV == 4 ? 4 : 3;
+    const int term_count=NV == 6 ? 56 : 35;
+    const int largest_prime=NV == 4 ? 251 : (NV == 5 ? 23 : 167);
+    if (P < 11 || P > largest_prime || nt != term_count) return 2;
+    for (int a=2; a*a<=P; ++a) if (P%a == 0) return 2;
+    if (NV == 4 ? (N < 3 || N > (P<=47 ? 5 : 4)) : N != 5) return 2;
+    // For every retained input, h<p and k<p: v_p((pk-h)!)=k-1.
+    // In the fourfold store alpha/p modulo p^(N-1), then restore p on output.
+    const bool divided=NV == 6;
+    MOD=1;
+    for (int i=0; i<N-int(divided); ++i) {
+        if (MOD > UINT32_MAX/u64(P)) return 2;
+        MOD*=P;
     }
     terms.resize(nt);
-    D = 0;
-    std::map<Exp, bool> seen;
+    D=degree;
+    std::map<Exp,bool> seen;
     for (auto &t : terms) {
-        int s = 0; u64 c;
-        for (int &x : t.e) { if (!(std::cin >> x) || x < 0 || x > 4) return 2; s += x; }
-        if (!(std::cin >> c) || s != 4 || c == 0 || c >= (u64)P || !seen.emplace(t.e, true).second) return 2;
-        D = s;
-        t.c = (u32)powmod(c % P, MOD / P, MOD);          // Teichmuller lift
+        int sum=0; u64 coefficient;
+        for (int &x : t.e) {
+            if (!(std::cin >> x) || x<0 || x>degree) return 2;
+            sum+=x;
+        }
+        if (!(std::cin >> coefficient) || sum!=degree || coefficient==0 ||
+            coefficient>=u64(P) || !seen.emplace(t.e,true).second) return 2;
+        t.c=powmod(coefficient,MOD/P,MOD);
     }
-    if (D % P == 0) return 2;
-    // Every requested power has m = pk - d_j with d_j >= 1 and 0 < m < p^2.
-    // Thus v_p(m!) = floor(m/p) <= k-1. The multiplier (-p)^k / m!
-    // supplies at least one digit, so a coefficient modulo p^(N-1) suffices.
-    const u64 power_mod = MOD / P;
-    return compute(power_mod);
+    const u64 power_mod = divided ? MOD : MOD/P;
+    // Small-prime tables fit 16 bits. Keep 32-bit storage for the larger
+    // threefold moduli; this choice changes storage only, not arithmetic.
+    if constexpr (NV == 5) {
+        if (power_mod > UINT16_MAX + u64(1)) return compute<u32>(power_mod,divided);
+    }
+    return compute<uint16_t>(power_mod,divided);
 }

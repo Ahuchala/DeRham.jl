@@ -7,14 +7,29 @@ function _dense_dwork_input(f)
     K isa Oscar.FinField && Oscar.degree(K) == 1 ||
         throw(ArgumentError("dense Dwork requires a prime field"))
     p = BigInt(characteristic(K))
-    11 <= p <= 101 || throw(ArgumentError("dense Dwork supports primes 11 through 101"))
-    nvars(parent(f)) == 4 && !iszero(f) && is_homogeneous(f) && total_degree(f) == 4 ||
-        throw(ArgumentError("dense Dwork requires a homogeneous quartic in four variables"))
-    length(f) == 35 || throw(ArgumentError("dense Dwork requires all 35 quartic monomials"))
+    n = nvars(parent(f))
+    degree = n == 4 ? 4 : 3
+    limit = n == 4 ? 251 : (n == 5 ? 23 : 167)
+    n in (4, 5, 6) || throw(
+        ArgumentError("dense Dwork supports quartic K3s and cubic threefolds/fourfolds"),
+    )
+    11 <= p <= limit || throw(
+        ArgumentError("dense Dwork requires a prime between 11 and $limit for this shape"),
+    )
+    !iszero(f) && is_homogeneous(f) && total_degree(f) == degree || throw(
+        ArgumentError(
+            "dense Dwork requires a homogeneous degree-$degree polynomial in $n variables",
+        ),
+    )
+    length(f) == binomial(n+degree-1, degree) ||
+        throw(ArgumentError("dense Dwork requires every degree-$degree monomial"))
     return Int(p)
 end
 
 function _dense_dwork_matrix(f, p, N)
+    n = nvars(parent(f))
+    rank = n == 4 ? 21 : (n == 5 ? 10 : 22)
+    binary = n == 4 ? "dense_dwork" : "dense_dwork_$n"
     executable = joinpath(
         @__DIR__,
         "..",
@@ -22,13 +37,13 @@ function _dense_dwork_matrix(f, p, N)
         "deps",
         "usr",
         "bin",
-        "dense_dwork" * (Sys.iswindows() ? ".exe" : ""),
+        binary * (Sys.iswindows() ? ".exe" : ""),
     )
     isfile(executable) || error(
         "Dense Dwork backend unavailable; install a C++17 compiler and run Pkg.build(\"DeRham\") once",
     )
     input = IOBuffer()
-    println(input, p, " ", N, " 35")
+    println(input, p, " ", N, " ", length(f))
     for i = 1:length(f)
         println(input, join(exponent_vector(f, i), ' '), " ", lift(ZZ, coeff(f, i)))
     end
@@ -44,12 +59,13 @@ function _dense_dwork_matrix(f, p, N)
     )
     message = String(take!(diagnostic))
     process.exitcode == 3 &&
-        throw(ArgumentError("quartic is geometrically singular (Jacobian ranks)"))
+        throw(ArgumentError("hypersurface is geometrically singular (Jacobian ranks)"))
     success(process) || error("dense Dwork native computation failed: $message")
     rows = split(strip(String(take!(output))), '\n')
-    length(rows) == 43 && rows[1] == "21" || error("invalid dense Dwork matrix response")
-    A = [parse.(BigInt, split(rows[i])) for i = 23:43]
-    all(row -> length(row) == 21 && all(x -> 0 <= x < big(p)^N, row), A) ||
+    length(rows) == 1+2rank && rows[1] == string(rank) ||
+        error("invalid dense Dwork matrix response")
+    A = [parse.(BigInt, split(rows[i])) for i = (rank+2):(2rank+1)]
+    all(row -> length(row) == rank && all(x -> 0 <= x < big(p)^N, row), A) ||
         error("invalid dense Dwork matrix residues")
     return A
 end
@@ -77,14 +93,17 @@ end
 
 # Enumerate EVERY prefix allowed by the residues and Newton/Weil bounds.
 # A cap requests more precision; it never discards candidates selectively.
-function _dense_dwork_lift(residues, p; max_prefixes = 4096)
+function _dense_dwork_lift(residues, p; max_prefixes = 4096, dimension = 2)
     r = length(residues)-1
     determinant, determinant_modulus = residues[end]
-    signs = [s for s in (1, -1) if iszero(mod(s*big(p)^r-determinant, determinant_modulus))]
+    signs = [
+        s for s in (isodd(dimension) ? (1,) : (1, -1)) if
+        iszero(mod(s*big(p)^(dimension*r÷2)-determinant, determinant_modulus))
+    ]
     states = [(BigInt[1], BigInt[0])]
     for k = 1:div(r, 2)
         residue, modulus = residues[k+1]
-        bound = r*big(p)^k
+        bound = isqrt(big(r)^2*big(p)^(dimension*k))
         next = Tuple{Vector{BigInt},Vector{BigInt}}[]
         for (c, traces) in states
             previous = -sum((c[i+1]*traces[k-i+1] for i = 1:(k-1)); init = big(0))
@@ -100,14 +119,18 @@ function _dense_dwork_lift(residues, p; max_prefixes = 4096)
     end
     survivors = Vector{BigInt}[]
     for (half, initial_traces) in states, s in signs
-        c = vcat(half, [s*big(p)^(r-2i)*half[i+1] for i in reverse(0:div(r, 2))])
+        c = vcat(
+            half,
+            [s*big(p)^(dimension*(r-2i)÷2)*half[i+1] for i in reverse(0:div(r-1, 2))],
+        )
+        iseven(r) && c[r÷2+1] != s*c[r÷2+1] && continue
         all(iszero(mod(x-a, m)) for (x, (a, m)) in zip(c, residues)) || continue
         traces = copy(initial_traces)
         admissible = true
         for k = length(half):4r
             tr = -sum((c[i+1]*traces[k-i+1] for i = 1:min(r, k-1)); init = big(0))
             k <= r && (tr -= k*c[k+1])
-            if abs(tr) > r*big(p)^k
+            if tr^2 > big(r)^2*big(p)^(dimension*k)
                 admissible = false
                 break
             end
@@ -126,9 +149,11 @@ end
     dense_dwork_coefficients(f)
 
 Opt-in experimental dense Dwork–Cartier with Harvey window coefficient extraction.
-Return the 22 descending integer coefficients of the degree-21 primitive
-Frobenius polynomial of a smooth quartic K3 surface. Requires all 35 monomials
-and a prime coefficient field with `11 <= p <= 101`. Singular or unsupported
+Return the descending integer coefficients of the primitive Frobenius
+polynomial. Requires full monomial support over a prime field:
+quartic K3 surfaces (4 variables, `11 <= p <= 251`, rank 21),
+cubic threefolds (5 variables, `11 <= p <= 23`, rank 10), or
+cubic fourfolds (6 variables, `11 <= p <= 167`, rank 22). Singular or unsupported
 inputs raise `ArgumentError`. Ambiguity at the native precision limit raises
 an error; a candidate is never returned without a unique integer lift.
 
@@ -139,10 +164,12 @@ for the precision proof, process protocol and supported platforms.
 function dense_dwork_coefficients(f::MPolyRingElem)
     p = _dense_dwork_input(f)
     # Julia owns validation. Native Jacobian ranks independently certify smoothness.
-    check_smoothness(f) || throw(ArgumentError("quartic is geometrically singular"))
-    for N = 3:(p<=47 ? 5 : 4)
+    check_smoothness(f) || throw(ArgumentError("hypersurface is geometrically singular"))
+    dimension = nvars(parent(f))-2
+    precisions = dimension == 2 ? (3:(p<=47 ? 5 : 4)) : (5:5)
+    for N in precisions
         A = _dense_dwork_matrix(f, p, N)
-        c = _dense_dwork_lift(_dense_dwork_residues(A, p, N), p)
+        c = _dense_dwork_lift(_dense_dwork_residues(A, p, N), p; dimension)
         isnothing(c) || return ZZ.(reverse(c))
     end
     error("integer lift remains ambiguous at the supported native precision limit")
@@ -154,13 +181,15 @@ dense_dwork_coefficients(X::ProjectiveHypersurface) =
 """
     dense_dwork_zeta(f)
 
-Return the exact full projective zeta function of a supported dense quartic K3
-as an element of `fraction_field(ZZ[T])`, including `(1-T)(1-p*T)(1-p^2*T)`.
+Return the exact full projective zeta function of a supported dense hypersurface
+as an element of `fraction_field(ZZ[T])`, including all ambient projective factors.
+The primitive factor is in the numerator for a threefold and the denominator
+for a surface or fourfold.
 Uses [`dense_dwork_coefficients`](@ref); the same restrictions and errors apply.
 """
 function dense_dwork_zeta(f::MPolyRingElem)
     cs = dense_dwork_coefficients(f)
-    return zeta_function(cs, characteristic(parent(f)), 2)
+    return zeta_function(cs, characteristic(parent(f)), nvars(parent(f))-2)
 end
 
 dense_dwork_zeta(X::ProjectiveHypersurface) = dense_dwork_zeta(polynomial(X))

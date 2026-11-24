@@ -13,7 +13,7 @@ with tempfile.TemporaryDirectory() as temp:
     subprocess.run([os.environ.get('CXX','c++'),'-O1','-g','-std=c++17',
                     '-fsanitize=address,undefined','-fno-sanitize-recover=all',
                     str(root/'deps/native/dense_frobenius.cpp'),'-o',str(binary)],check=True)
-    for p,N in [(11,5),(13,5),(47,5),(101,4),(47,6),(53,5),(103,4)]:
+    for p,N in [(11,5),(13,5),(47,5),(101,4),(47,6),(53,5),(257,4)]:
         result=subprocess.run([str(binary)],input=data(p,N),text=True,capture_output=True)
         expected=0 if (p,N) in [(11,5),(13,5),(47,5),(101,4)] else 2
         assert result.returncode==expected,(p,N,result.returncode,result.stderr)

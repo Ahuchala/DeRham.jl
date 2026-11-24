@@ -71,13 +71,13 @@ public:
            const std::vector<Word> &coefficients, const std::vector<Exp> &readouts)
         : degree(degree_), m(exponent), p(prime), q(outmod), scale(1), coeff(coefficients) {
         // Bounded word backend. A caller can fall back to arbitrary precision.
-        constexpr Word limit = Word(1)<<40;
+        constexpr Word limit = Word(1)<<52;
         if (!q || q>limit || p<2 || m<0 || !degree || degree%p==0 ||
             coeff.empty() || coeff.size()!=support.size() || readouts.empty())
             throw std::invalid_argument("unsupported Harvey window");
         for (Word a=m/p; a; a/=p) {
             for (Word i=0; i<a; ++i) {
-                if (q>limit/p) throw std::overflow_error("Harvey window guard precision exceeds 40 bits");
+                if (q>limit/p) throw std::overflow_error("Harvey window guard precision exceeds 52 bits");
                 q*=p;
                 scale*=p;
             }

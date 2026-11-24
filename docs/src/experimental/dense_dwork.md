@@ -1,4 +1,9 @@
-# Dense Dwork quartic K3 calculator
+# Dense Dwork quartic K3 derivation
+
+This page records the original K3 range and derivation from PR #99. See
+[Native dense hypersurfaces](native_hypersurfaces.md) for the current supported
+ranges, threefold/fourfold extension, and the enlarged arithmetic bounds.
+The argument below applies to the original 11–101 K3 subrange.
 
 `DeRham.dense_dwork_zeta(f)` is an opt-in experimental calculator for smooth
 quartic K3 surfaces over prime fields with **11 ≤ p ≤ 101**, requiring **all

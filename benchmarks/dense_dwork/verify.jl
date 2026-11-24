@@ -58,7 +58,7 @@ end
     @test length(singular) == 35
     @test_throws ArgumentError DeRham.dense_dwork_zeta(singular)
     @test_throws ArgumentError DeRham.dense_dwork_zeta(sum(x^4 for x in xs))
-    for p in (7, 103)
+    for p in (7, 257)
         @test_throws ArgumentError DeRham.dense_dwork_zeta(small_dense(p))
     end
     Rq, ys = polynomial_ring(GF(11, 2), ["x", "y", "z", "w"])

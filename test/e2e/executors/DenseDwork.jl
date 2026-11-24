@@ -12,17 +12,18 @@ function validate_parameters(name, parameters)
 end
 
 function expected(example, record)
+    dimension = example.variety["dim"]
     Common.validate_geometry(
         example,
         INVARIANT_NAME;
-        dimension = 2,
-        variable_count = 4,
-        degree = 4,
+        dimension = dimension,
+        variable_count = dimension+2,
+        degree = dimension == 2 ? 4 : 3,
     )
     return DeRham.zeta_function(
         Common.stored_lpoly_descending(example, record),
         Common.resolve_prime(example, record),
-        2,
+        dimension,
     )
 end
 
