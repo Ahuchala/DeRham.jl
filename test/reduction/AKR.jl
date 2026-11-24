@@ -13,11 +13,7 @@ end
     @test DeRham.zeta_coefficients(curve; algorithm = :akr) == naive
     @test DeRham.zeta_coefficients(curve; algorithm = :akr_levelbylevel) == naive
     @test DeRham.zeta_coefficients(curve) == naive
-    @test DeRham.zeta_coefficients(
-        curve;
-        algorithm = :akr_naive,
-        termorder = :lex,
-    ) == naive
+    @test DeRham.zeta_coefficients(curve; algorithm = :akr_naive, termorder = :lex) == naive
     @test DeRham.zeta_coefficients(
         curve;
         algorithm = :akr_levelbylevel,
