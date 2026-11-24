@@ -62,7 +62,9 @@ Keyword arguments:
 - `givefrobmat=false`: if true, returns `(F, coeffs)`, the Frobenius matrix
   and the coefficient vector, instead of just the coefficient vector.
 - `algorithm=:default`: selects the controlled-reduction algorithm; `:default`
-  chooses automatically. Double covers default to `:depthfirst` and also
+  chooses automatically. Projective hypersurfaces also accept the experimental
+  selectors `:akr`, `:akr_naive`, and `:akr_levelbylevel` (see
+  [AKR pole reduction](@ref)). Double covers default to `:depthfirst` and also
   support explicit CPU execution with `:varbyvar` and `S=[n]`.
 - `relative_precision`, `series_precision`, and `algorithm_precision`: explicit,
   uncertified precision inputs for non-hypersurface frontends. Hypersurface
