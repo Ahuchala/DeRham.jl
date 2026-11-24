@@ -73,7 +73,7 @@ Z(X,T)^{-1}
    \prod_{\text{closed roots}}\bigl(1-\epsilon(q^{(n-3)/2}T)^e\bigr).
 ```
 
-See D. B. Leep and L. M. Schueller,
+See Laura Mann Schueller,
 [*The Zeta Function of a Pair of Quadratic Forms*](https://doi.org/10.4153/CMB-2001-024-7),
 Canadian Mathematical Bulletin 44 (2001), 242–256.
 
