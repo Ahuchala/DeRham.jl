@@ -86,10 +86,6 @@ using GPUFiniteFieldMatrices:
 
 #include("NemoAdditions.jl")
 
-const akr = :akr
-const akr_naive = :akr_naive
-const akr_levelbylevel = :akr_levelbylevel
-
 include("Utils.jl")
 include("ZetaFunctionParams.jl")
 include("quotients/CohomologyQuotient.jl")
@@ -181,9 +177,6 @@ public fermat_hypersurface,
     tate_untwist,
     normalized_tate_twist,
     ibm_lattice_correction,
-    pregen_default_context,
-    akr,
-    akr_naive,
-    akr_levelbylevel
+    pregen_default_context
 
 end
