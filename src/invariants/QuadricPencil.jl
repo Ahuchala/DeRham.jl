@@ -151,7 +151,9 @@ function quadric_pencil_zeta(f::MPolyRingElem, g::MPolyRingElem)
     q = ZZ(Oscar.order(K))
     if diagonal
         negative = _quadric_diagonal_signs(A, B, n)
-        isnothing(negative) && throw(ArgumentError("the binary pencil determinant must have only simple roots"))
+        isnothing(negative) && throw(
+            ArgumentError("the binary pencil determinant must have only simple roots"),
+        )
         scale = q^((n - 3) ÷ 2)
         ambient = prod(1 - q^i * T for i = 0:(n-3))
         return one(R) // (ambient * (1 - scale*T)^(n-negative) * (1 + scale*T)^negative)

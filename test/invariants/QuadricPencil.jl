@@ -79,20 +79,24 @@ end
     # Check diagonal coefficients outside the prime field and a root at infinity.
     diagonal, second = u^2 + v^2 + w^2, a*v^2 + w^2
     mixed, other = (u+v)^2 + v^2 + w^2, a*v^2 + w^2
-    @test DeRham.quadric_pencil_zeta(second, diagonal) == DeRham.quadric_pencil_zeta(other, mixed)
-    @test DeRham.quadric_pencil_point_count(second, diagonal) == DeRham.quadric_pencil_point_count(other, mixed)
+    @test DeRham.quadric_pencil_zeta(second, diagonal) ==
+          DeRham.quadric_pencil_zeta(other, mixed)
+    @test DeRham.quadric_pencil_point_count(second, diagonal) ==
+          DeRham.quadric_pencil_point_count(other, mixed)
 end
 
 @testset "even-rank pencil corrections" begin
     K = GF(101)
-    _, X = polynomial_ring(K, ["x$i" for i=1:4])
+    _, X = polynomial_ring(K, ["x$i" for i = 1:4])
     # Direct projective enumeration gives 120 points on the base.
-    @test DeRham.quadric_pencil_point_count(sum(X.^2), sum((i-1)*X[i]^2 for i=1:4)) == 120
-    _, Y = polynomial_ring(K, ["y$i" for i=1:5])
-    U = [Y[i] + Y[5] for i=1:4]
+    @test DeRham.quadric_pencil_point_count(sum(X .^ 2), sum((i-1)*X[i]^2 for i = 1:4)) ==
+          120
+    _, Y = polynomial_ring(K, ["y$i" for i = 1:5])
+    U = [Y[i] + Y[5] for i = 1:4]
     # The sheared cone has one vertex and 101 affine points over each base point.
-    @test DeRham.quadric_pencil_point_count(sum(U.^2), sum((i-1)*U[i]^2 for i=1:4)) == 12121
-    _, (x, y, z) = polynomial_ring(K, ["x","y","z"])
+    @test DeRham.quadric_pencil_point_count(sum(U .^ 2), sum((i-1)*U[i]^2 for i = 1:4)) ==
+          12121
+    _, (x, y, z) = polynomial_ring(K, ["x", "y", "z"])
     # Every member is singular, but the two radicals have zero intersection.
     @test DeRham.quadric_pencil_point_count(x*z, y*z) == 103
 end
