@@ -59,3 +59,44 @@
     @test count_pair(V[1]^2, V[2]^2) == 4  # underlying projective line
     @test_throws ArgumentError zeta_pair(V[1]^2, V[2]^2)
 end
+
+@testset "rational singular members of odd pencils" begin
+    K = GF(101)
+    _, (x, y, z) = polynomial_ring(K, ["x", "y", "z"])
+    # Repeated determinant root, and a simple root at infinity when swapped.
+    # z=0 and (x+y)^2+y^2=0 give two points since -1 is a square.
+    f, g = (x + y)^2 + y^2, z^2
+    @test DeRham.quadric_pencil_point_count(f, g) == 2
+    @test DeRham.quadric_pencil_point_count(g, f) == 2
+    @test DeRham.quadric_pencil_point_count(x*y, x^2) == 102
+
+    # The irreducible quartic of the F_3 conic example splits over F_81.
+    L, a = Oscar.finite_field(3, 4, "a")
+    _, (u, v, w) = polynomial_ring(L, ["u", "v", "w"])
+    h, j = u*w - v^2, u^2 + v*w + 2*w^2
+    @test DeRham.quadric_pencil_point_count(j + a*h, h) == 4
+
+    # Check diagonal coefficients outside the prime field and a root at infinity.
+    diagonal, second = u^2 + v^2 + w^2, a*v^2 + w^2
+    mixed, other = (u+v)^2 + v^2 + w^2, a*v^2 + w^2
+    @test DeRham.quadric_pencil_zeta(second, diagonal) ==
+          DeRham.quadric_pencil_zeta(other, mixed)
+    @test DeRham.quadric_pencil_point_count(second, diagonal) ==
+          DeRham.quadric_pencil_point_count(other, mixed)
+end
+
+@testset "even-rank pencil corrections" begin
+    K = GF(101)
+    _, X = polynomial_ring(K, ["x$i" for i = 1:4])
+    # Direct projective enumeration gives 120 points on the base.
+    @test DeRham.quadric_pencil_point_count(sum(X .^ 2), sum((i-1)*X[i]^2 for i = 1:4)) ==
+          120
+    _, Y = polynomial_ring(K, ["y$i" for i = 1:5])
+    U = [Y[i] + Y[5] for i = 1:4]
+    # The sheared cone has one vertex and 101 affine points over each base point.
+    @test DeRham.quadric_pencil_point_count(sum(U .^ 2), sum((i-1)*U[i]^2 for i = 1:4)) ==
+          12121
+    _, (x, y, z) = polynomial_ring(K, ["x", "y", "z"])
+    # Every member is singular, but the two radicals have zero intersection.
+    @test DeRham.quadric_pencil_point_count(x*z, y*z) == 103
+end

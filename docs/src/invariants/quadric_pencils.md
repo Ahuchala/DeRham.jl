@@ -2,11 +2,25 @@
 
 Let $X=V(f,g)$ in $\mathbf P^{n-1}$ over a finite field of odd order $q$.
 `quadric_pencil_point_count` computes its exact number of rational points,
-including for singular intersections. Its cost includes $q+1$ ranks of
-$n$-by-$n$ matrices. For odd $n$ and a smooth complete intersection,
+including for singular intersections. In odd matrix size, a nonsingular pencil member contributes zero correction.
+For larger fields the implementation finds the distinct rational roots of the
+pencil determinant and computes ranks only at these roots and at infinity.
+For even size, each nonsingular member's correction comes from the quadratic
+character of its signed determinant, which can be evaluated at the field
+element directly. If both generators are singular, the large-field path
+restricts them to a complement of their common radical. This preserves the
+rank and discriminant of every member. The exponent of $q$ in the correction
+still uses the original ambient dimension. Small fields and pencils with
+identically zero determinant even after restriction retain direct traversal. For odd $n$ and a smooth complete intersection,
 `quadric_pencil_zeta` computes the entire rational zeta function by factoring
 one polynomial of degree at most $n$. Both routines use Oscar finite-field
-arithmetic. The full zeta routine uses no field enumeration or choice of
+arithmetic. For a nonsingular leading matrix $A$, the determinant and its principal
+cofactors can be computed over the base field using
+$\det(tA+B)=\det(A)\det(tI+A^{-1}B)$. The same identity applies to each
+minor with nonsingular leading matrix. The reverse polynomial in a chart
+with invertible $B$ or $B-A$ supplies two further choices. If all three
+matrices are singular, the polynomial determinant is computed directly.
+The full zeta routine uses no field enumeration or choice of
 working precision.
 
 ```jldoctest
@@ -76,6 +90,21 @@ Z(X,T)^{-1}
 See Laura Mann Schueller,
 [*The Zeta Function of a Pair of Quadratic Forms*](https://doi.org/10.4153/CMB-2001-024-7),
 Canadian Mathematical Bulletin 44 (2001), 242–256.
+
+### Diagonal pencils
+
+If both input forms are diagonal, write their coefficients as pairs
+$(a_i,b_i)$. The determinant is a product of linear factors, with roots
+$[-b_i:a_i]$. For odd $n$, the signed cofactor at root $i$ is
+
+```math
+(-1)^{(n-1)/2}\prod_{j\ne i}(a_i b_j-b_i a_j).
+```
+
+A vanishing product detects a zero pair or coincident roots. Otherwise every
+root is simple and rational. Both routines use the signs of these products
+directly, including for a root at infinity. This costs $O(n^2)$ field
+operations and $n$ quadratic-character tests.
 
 ## API
 
